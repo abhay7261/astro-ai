@@ -1,5 +1,18 @@
 [
   {
+    "userId": "u-1792258726968",
+    "id": "u-1792258726968",
+    "name": "Test Seeker",
+    "email": "test_astrology_live@gmail.com",
+    "joinedDate": "Today",
+    "walletBalance": 50,
+    "totalConsultations": 0,
+    "isVIP": false,
+    "isBanned": false,
+    "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+    "_id": "6ad3b2a6d84e1945ebd54948"
+  },
+  {
     "id": "u-1",
     "name": "Abhay Saini",
     "email": "sainiabhay070@gmail.com",

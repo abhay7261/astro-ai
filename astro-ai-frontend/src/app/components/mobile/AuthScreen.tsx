@@ -6,6 +6,7 @@ import {
   Mail, Lock, Eye, EyeOff, User, ArrowRight, ShieldCheck, 
   Sparkles, AlertCircle, CheckCircle2, X 
 } from "lucide-react";
+import { usersApi } from "../../services/apiClient";
 
 export interface AuthUser {
   id: string;
@@ -37,7 +38,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
@@ -59,20 +60,39 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
 
     setIsLoading(true);
 
-    // Simulate clean authentication response
-    setTimeout(() => {
+    try {
+      const displayName = activeTab === "signup" ? name.trim() : email.split("@")[0].replace(".", " ");
+      const res = await usersApi.login(email.trim().toLowerCase(), displayName);
       setIsLoading(false);
 
-      const authenticatedUser: AuthUser = {
+      if (res && res.success && res.user) {
+        onAuthenticated({
+          id: res.user.userId || res.user.id || res.user._id,
+          name: res.user.name,
+          email: res.user.email,
+          avatar: res.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+          isVip: res.user.isVIP || false,
+        });
+      } else {
+        // Fallback local session if backend unreachable
+        onAuthenticated({
+          id: `user_${Date.now()}`,
+          name: displayName,
+          email: email.trim().toLowerCase(),
+          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+          isVip: false,
+        });
+      }
+    } catch {
+      setIsLoading(false);
+      onAuthenticated({
         id: `user_${Date.now()}`,
         name: activeTab === "signup" ? name.trim() : email.split("@")[0].replace(".", " "),
         email: email.trim().toLowerCase(),
         avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
         isVip: false,
-      };
-
-      onAuthenticated(authenticatedUser);
-    }, 1000);
+      });
+    }
   };
 
   const handleGoogleClick = () => {
@@ -94,18 +114,30 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
     }, 2500);
   };
 
-  const handleQuickDemo = () => {
+  const handleQuickDemo = async () => {
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await usersApi.login("rahul.verma@example.com", "Rahul Verma");
       setIsLoading(false);
-      onAuthenticated({
-        id: "demo_user_1",
-        name: "Rahul Verma",
-        email: "rahul.verma@example.com",
-        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
-        isVip: true,
-      });
-    }, 600);
+      if (res && res.success && res.user) {
+        onAuthenticated({
+          id: res.user.userId || res.user.id || res.user._id,
+          name: res.user.name,
+          email: res.user.email,
+          avatar: res.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+          isVip: res.user.isVIP || true,
+        });
+        return;
+      }
+    } catch {}
+    setIsLoading(false);
+    onAuthenticated({
+      id: "demo_user_1",
+      name: "Rahul Verma",
+      email: "rahul.verma@example.com",
+      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+      isVip: true,
+    });
   };
 
   return (

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { X, Sparkles, Shield, CheckCircle2 } from "lucide-react";
 
+import { usersApi } from "../services/apiClient";
+
 export interface UserProfile {
   name: string;
   email: string;
@@ -19,22 +21,32 @@ interface AuthModalProps {
 export default function AuthModal({ onClose, onLoginSuccess }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setLoading(true);
 
-    // Simulate Google Sign In
-    setTimeout(() => {
-      const mockUser: UserProfile = {
+    try {
+      const res = await usersApi.login("rahul.verma@gmail.com", "Rahul Verma");
+      setLoading(false);
+      const user = res?.user;
+      onLoginSuccess({
+        name: user?.name || "Rahul Verma",
+        email: user?.email || "rahul.verma@gmail.com",
+        avatar: user?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+        isVip: user?.isVIP ?? true,
+        savedKundlisCount: 2,
+      });
+      onClose();
+    } catch {
+      setLoading(false);
+      onLoginSuccess({
         name: "Rahul Verma",
         email: "rahul.verma@gmail.com",
         avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
         isVip: true,
         savedKundlisCount: 2,
-      };
-      onLoginSuccess(mockUser);
-      setLoading(false);
+      });
       onClose();
-    }, 1200);
+    }
   };
 
   return (

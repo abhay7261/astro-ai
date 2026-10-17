@@ -129,6 +129,12 @@ export const usersApi = {
     const data = await apiRequest<{ success: boolean; users: any[] }>("/users");
     return data?.users || null;
   },
+  login: async (email: string, name?: string) => {
+    return await apiRequest<{ success: boolean; user: any; token: string }>("/users/login", {
+      method: "POST",
+      body: JSON.stringify({ email, name }),
+    });
+  },
   addBonus: async (id: string, amount: number) => {
     return await apiRequest<{ success: boolean; walletBalance: number }>(`/users/${id}/bonus`, {
       method: "POST",
