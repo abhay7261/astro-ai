@@ -1,0 +1,84 @@
+// Astrologer Data Model & Persistent Disk Store
+import { loadData, saveData } from "../config/fileDb.js";
+
+const DEFAULT_ASTROLOGERS = [
+  {
+    id: "1",
+    name: "Acharya Vidyadhar Shastri",
+    title: "Vedic Astrologer & Kundli Expert",
+    category: "Kundli",
+    experience: "18+ Yrs Exp",
+    languages: ["Hindi", "Sanskrit", "English"],
+    pricePerMin: 25,
+    rating: 4.95,
+    totalConsultations: "34.5K+",
+    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80",
+    specialty: "Lagna Dosha, Graha Shanti",
+    isOnline: true,
+  },
+  {
+    id: "2",
+    name: "Dr. Ananya Mukherjee",
+    title: "Love & Marriage Compatibility Guru",
+    category: "Love",
+    experience: "12+ Yrs Exp",
+    languages: ["Hindi", "English", "Bengali"],
+    pricePerMin: 20,
+    rating: 4.92,
+    totalConsultations: "28.1K+",
+    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+    specialty: "Kundli Milan, Vivah Yog",
+    isOnline: true,
+  },
+  {
+    id: "3",
+    name: "Pandit Radheshyam Joshi",
+    title: "Career & Business Specialist",
+    category: "Career",
+    experience: "15+ Yrs Exp",
+    languages: ["Hindi", "Gujarati", "English"],
+    pricePerMin: 22,
+    rating: 4.88,
+    totalConsultations: "22.4K+",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+    specialty: "Job Timing, Wealth Yog",
+    isOnline: true,
+  },
+];
+
+export let astrologersStore = loadData("astrologers.json", DEFAULT_ASTROLOGERS);
+
+export const AstrologerModel = {
+  find: () => astrologersStore,
+  findById: (id) => astrologersStore.find((a) => a.id === id),
+  create: (data) => {
+    const newAstro = {
+      id: Date.now().toString(),
+      rating: 4.9,
+      totalConsultations: "100+",
+      isOnline: true,
+      languages: ["Hindi", "English"],
+      ...data,
+    };
+    astrologersStore.unshift(newAstro);
+    saveData("astrologers.json", astrologersStore);
+    return newAstro;
+  },
+  deleteById: (id) => {
+    const initialLen = astrologersStore.length;
+    astrologersStore = astrologersStore.filter((a) => a.id !== id);
+    const deleted = astrologersStore.length !== initialLen;
+    if (deleted) {
+      saveData("astrologers.json", astrologersStore);
+    }
+    return deleted;
+  },
+  updateStatus: (id, isOnline) => {
+    const astro = astrologersStore.find((a) => a.id === id);
+    if (astro) {
+      astro.isOnline = isOnline;
+      saveData("astrologers.json", astrologersStore);
+    }
+    return astro;
+  },
+};

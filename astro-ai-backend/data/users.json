@@ -1,0 +1,32 @@
+[
+  {
+    "id": "u-1",
+    "name": "Abhay Saini",
+    "email": "sainiabhay070@gmail.com",
+    "joinedDate": "12 Oct 2026",
+    "walletBalance": 250,
+    "totalConsultations": 4,
+    "isVIP": true,
+    "isBanned": false
+  },
+  {
+    "id": "u-2",
+    "name": "Rohit Sharma",
+    "email": "rohit.sharma@example.com",
+    "joinedDate": "13 Oct 2026",
+    "walletBalance": 0,
+    "totalConsultations": 1,
+    "isVIP": false,
+    "isBanned": false
+  },
+  {
+    "id": "u-3",
+    "name": "Pooja Malhotra",
+    "email": "pooja.m@example.com",
+    "joinedDate": "14 Oct 2026",
+    "walletBalance": 80,
+    "totalConsultations": 2,
+    "isVIP": true,
+    "isBanned": false
+  }
+]

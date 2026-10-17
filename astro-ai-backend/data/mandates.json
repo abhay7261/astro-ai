@@ -1,0 +1,13 @@
+[
+  {
+    "mandateId": "mandate_1729012800",
+    "userId": "u-1",
+    "userName": "Abhay Saini",
+    "upiApp": "phonepe",
+    "setupFeePaid": 4,
+    "status": "active",
+    "trialStartedAt": "2026-10-16T05:33:23.260Z",
+    "trialEndsAt": "2026-10-19T05:33:23.261Z",
+    "nextDebitAmount": 299
+  }
+]

@@ -1,0 +1,79 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 4836 >>
+stream
+BT /F2 18 Tf 50 790 Td (AstroAI - Product Roadmap & Feature Log) Tj ET
+BT /F1 10 Tf 50 770 Td (Platform: Vedic Astrology & AI Mobile Experience \(Next.js\)) Tj ET
+BT /F1 10 Tf 50 755 Td (Date: October 15, 2026  |  Status: Launch Version v1.0 Ready) Tj ET
+BT /F1 10 Tf 50 740 Td (____________________________________________________________________________________) Tj ET
+BT /F2 13 Tf 50 715 Td (1. ACTIVE LAUNCH FEATURES \(v1.0 Scope - Live & Functional\)) Tj ET
+BT /F1 10 Tf 60 698 Td (The following core modules are active, tested, and ready for production launch:) Tj ET
+BT /F1 10 Tf 70 680 Td (* AI Astrologer Chatbot \(/ai-chat\): 24/7 instant Vedic AI assistant powered by Acharya AI.) Tj ET
+BT /F1 9 Tf 80 668 Td (  Features category chips, astrological typing simulation, and Pandit Ji Upay boxes.) Tj ET
+BT /F1 10 Tf 70 652 Td (* Verified Astrologers Directory \(/chat\): Directory of senior Acharyas with ratings and live chat.) Tj ET
+BT /F1 10 Tf 70 636 Td (* Fullscreen Astro Reels \(/reels\): 100dvh Instagram-style vertical video reels feed with double-tap) Tj ET
+BT /F1 9 Tf 80 624 Td (  like, comments slide-up drawer, share toast, sound mute/unmute, and desktop arrow keys.) Tj ET
+BT /F1 10 Tf 70 608 Td (* Floating Action Buttons: Bottom-right circular stack with 'Ask AI' directly above 'Reels'.) Tj ET
+BT /F1 10 Tf 70 592 Td (* Interactive Cosmic Orb: Animated planetary astrolabe with aura recalibration on Home dashboard.) Tj ET
+BT /F1 10 Tf 70 576 Td (* Customizable User Name: Direct inline editing of display name after 'Namaste' greeting.) Tj ET
+BT /F1 10 Tf 70 560 Td (* VIP Astro Pass \(/vip-pass\): Rs 299/month tier comparison and benefits showcases.) Tj ET
+BT /F1 10 Tf 70 544 Td (* Onboarding & Animated Splash Screen: 3 celestial swipe slides with persistent auth gate.) Tj ET
+BT /F1 10 Tf 50 525 Td (____________________________________________________________________________________) Tj ET
+BT /F2 13 Tf 50 500 Td (2. MODULES TEMPORARILY REMOVED FOR LAUNCH \(Reserved for Updates\)) Tj ET
+BT /F1 10 Tf 60 483 Td (These features have been completed in codebase but hidden from UI for a simplified v1.0 launch:) Tj ET
+BT /F2 11 Tf 70 465 Td ([Module A] Free Janam Kundli Generator \(/kundli\)) Tj ET
+BT /F1 10 Tf 80 450 Td (- Details: Birth details intake form \(DOB, Time, Birthplace\) with Lagna D1 planetary output.) Tj ET
+BT /F1 9 Tf 80 438 Td (- Reason for Update: Will be upgraded in v1.3 with a visual North Indian Diamond Chart.) Tj ET
+BT /F2 11 Tf 70 420 Td ([Module B] Kundli Milan & 36 Guna Matchmaking \(/kundli-milan\)) Tj ET
+BT /F1 10 Tf 80 405 Td (- Details: Ashtakoot 8-koot algorithm \(Varna, Vashya, Tara, Yoni, Maitri, Gana, Bhakoot, Nadi\).) Tj ET
+BT /F1 9 Tf 80 393 Td (- Reason for Update: Will be released as a marquee 'Marriage & Relationship' update in v1.1.) Tj ET
+BT /F2 11 Tf 70 375 Td ([Module C] Daily Rashifal & Planetary Transit \(DailyRashifalSection\)) Tj ET
+BT /F1 10 Tf 80 360 Td (- Details: 12 Zodiac swipeable jewel chips with Love, Career, Health progress meters and remedies.) Tj ET
+BT /F1 9 Tf 80 348 Td (- Reason for Update: Will be paired with Daily Panchang and Rahu Kaal alerts in v1.2.) Tj ET
+BT /F1 10 Tf 50 330 Td (____________________________________________________________________________________) Tj ET
+BT /F2 13 Tf 50 305 Td (3. FUTURE UPCOMING UPDATES ROADMAP \(Release Plan\)) Tj ET
+BT /F2 10 Tf 70 285 Td (Update 1 \(v1.1\) - Relationship & Matchmaking Suite:) Tj ET
+BT /F1 9 Tf 80 272 Td (* Re-enable Kundli Milan with 36 Gunas scorecard and Manglik Dosha cancellation logic.) Tj ET
+BT /F1 9 Tf 80 260 Td (* Love compatibility percentage meter and partner horoscope comparison report.) Tj ET
+BT /F2 10 Tf 70 242 Td (Update 2 \(v1.2\) - Daily Vedic Astro & Panchang Suite:) Tj ET
+BT /F1 9 Tf 80 229 Td (* Re-enable Daily Rashifal with customized horoscope push notifications.) Tj ET
+BT /F1 9 Tf 80 217 Td (* Aaj Ka Panchang \(Tithi, Nakshatra, Shubh Abhijit Muhurat, and Rahu Kaal warnings\).) Tj ET
+BT /F2 10 Tf 70 199 Td (Update 3 \(v1.3\) - Visual Diamond Kundli & 25-Page PDF Reports:) Tj ET
+BT /F1 9 Tf 80 186 Td (* Interactive North Indian Diamond D1 & Navamsha D9 Chart with tap-to-inspect houses.) Tj ET
+BT /F1 9 Tf 80 174 Td (* Downloadable 25-Page Color Janam Kundli Dossier PDF with WhatsApp share button.) Tj ET
+BT /F2 10 Tf 70 156 Td (Update 4 \(v2.0\) - Monetization & Calling Engine:) Tj ET
+BT /F1 9 Tf 80 143 Td (* Payment Gateway Integration \(Razorpay, PhonePe, Cashfree\) for VIP Pass and wallet top-ups.) Tj ET
+BT /F1 9 Tf 80 131 Td (* Live 1-on-1 WebRTC / Agora Voice and Video calling directly with senior astrologers.) Tj ET
+BT /F1 9 Tf 80 119 Td (* Bilingual Hindi / English instant language switch toggle.) Tj ET
+BT /F1 8 Tf 150 50 Td (Confidential - AstroAI Product Architecture | Prepared for AstroAI Launch Team) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000257 00000 n 
+0000005144 00000 n 
+0000005214 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+5289
+%%EOF

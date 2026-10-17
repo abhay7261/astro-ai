@@ -1,0 +1,6 @@
+{
+  "trialSetupFee": 4,
+  "trialDays": 3,
+  "recurringAutoDebitAmount": 299,
+  "isActive": true
+}
