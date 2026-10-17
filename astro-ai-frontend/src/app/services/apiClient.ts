@@ -121,6 +121,20 @@ export const reelsApi = {
       method: "POST",
     });
   },
+  uploadVideo: async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("video", file);
+      const res = await fetch(`${BASE_URL}/reels/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn("[API] Video upload error:", err);
+      return { success: false, message: "Upload failed" };
+    }
+  },
 };
 
 // 5. App Users API

@@ -101,6 +101,12 @@ export default function AdminDashboard() {
   const [newReelAstrologer, setNewReelAstrologer] = useState("Acharya Vidyadhar");
   const [newReelUrl, setNewReelUrl] = useState("https://assets.mixkit.co/videos/preview/mixkit-astrological-signs-rotating-in-the-sky-42997-large.mp4");
   const [newReelTag, setNewReelTag] = useState("#DailyUpay");
+  const [reelUploadMode, setReelUploadMode] = useState<"file" | "url">("file");
+  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>("");
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   // ================= 2. ASTROLOGERS STATE =================
   const [astrologers, setAstrologers] = useState<Astrologer[]>([]);
@@ -485,7 +491,48 @@ export default function AdminDashboard() {
     showToast(`Naya AI Astrologer "${newBot.name}" live ho gaya! 🤖`);
   };
 
-  // 7. REEL ACTIONS (Live Backend Sync)
+  // 7. REEL ACTIONS (Live Backend Sync & Cloudinary Video Upload)
+  const handleVideoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 100 * 1024 * 1024) {
+        showToast("Video size 100MB se kam hona chahiye!");
+        return;
+      }
+      setSelectedVideoFile(file);
+      setVideoPreviewUrl(URL.createObjectURL(file));
+      setUploadError("");
+      setUploadSuccess(false);
+    }
+  };
+
+  const handleUploadFileToCloud = async () => {
+    if (!selectedVideoFile) {
+      showToast("Pehle koi video file choose karein!");
+      return;
+    }
+    setIsUploadingVideo(true);
+    setUploadError("");
+    setUploadSuccess(false);
+    try {
+      const res = await reelsApi.uploadVideo(selectedVideoFile);
+      setIsUploadingVideo(false);
+      if (res && res.success && res.videoUrl) {
+        setNewReelUrl(res.videoUrl);
+        setUploadSuccess(true);
+        showToast("AI Video Cloudinary par successfully upload ho gayi! 🎬");
+      } else {
+        const errMsg = res?.message || "Upload nahi ho paya. Cloudinary credentials check karein.";
+        setUploadError(errMsg);
+        showToast(errMsg);
+      }
+    } catch {
+      setIsUploadingVideo(false);
+      setUploadError("Upload network error.");
+      showToast("Upload network error.");
+    }
+  };
+
   const handlePublishReel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newReelTitle.trim()) return;
@@ -1472,19 +1519,115 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-bold text-espresso/70 mb-1">VIDEO MP4 STREAMING URL</label>
-                    <input
-                      type="url"
-                      required
-                      value={newReelUrl}
-                      onChange={(e) => setNewReelUrl(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
-                    />
-                  </div>
+                {/* Upload Mode Selector */}
+                <div className="flex bg-astro-bg p-1 rounded-2xl border border-peach max-w-md">
+                  <button
+                    type="button"
+                    onClick={() => setReelUploadMode("file")}
+                    className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all ${
+                      reelUploadMode === "file"
+                        ? "bg-terracotta text-white shadow-sm"
+                        : "text-espresso/70 hover:text-espresso"
+                    }`}
+                  >
+                    📁 Upload AI Video File (.mp4)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReelUploadMode("url")}
+                    className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all ${
+                      reelUploadMode === "url"
+                        ? "bg-terracotta text-white shadow-sm"
+                        : "text-espresso/70 hover:text-espresso"
+                    }`}
+                  >
+                    🔗 Paste Video Link (URL)
+                  </button>
+                </div>
 
-                  <div>
+                {reelUploadMode === "file" ? (
+                  <div className="p-4 rounded-2xl border-2 border-dashed border-peach bg-astro-bg/40 space-y-3">
+                    <label className="block text-[11px] font-bold text-espresso/80">
+                      CHOOSE AI GENERATED VIDEO FILE (MAX 100MB)
+                    </label>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime,video/mov"
+                        onChange={handleVideoFileSelect}
+                        className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-terracotta file:text-white hover:file:bg-terracotta-hover cursor-pointer"
+                      />
+
+                      {selectedVideoFile && (
+                        <button
+                          type="button"
+                          onClick={handleUploadFileToCloud}
+                          disabled={isUploadingVideo || uploadSuccess}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold shadow-md inline-flex items-center gap-1.5 transition-all"
+                        >
+                          {isUploadingVideo ? (
+                            <>
+                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <span>Uploading to Cloud...</span>
+                            </>
+                          ) : uploadSuccess ? (
+                            <span>✅ Uploaded to Cloudinary!</span>
+                          ) : (
+                            <>
+                              <UploadCloud className="w-4 h-4" />
+                              <span>Upload to Cloudinary</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {selectedVideoFile && (
+                      <div className="text-[11px] text-espresso/70">
+                        Selected: <span className="font-semibold text-espresso">{selectedVideoFile.name}</span> ({(selectedVideoFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </div>
+                    )}
+
+                    {videoPreviewUrl && (
+                      <div className="mt-2 bg-black rounded-xl overflow-hidden max-w-xs shadow-md">
+                        <p className="text-[10px] text-white/70 px-3 py-1 font-semibold border-b border-white/10">Video Preview:</p>
+                        <video src={videoPreviewUrl} controls className="w-full max-h-48 object-contain" />
+                      </div>
+                    )}
+
+                    {uploadError && (
+                      <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                        {uploadError}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-bold text-espresso/70 mb-1">VIDEO MP4 STREAMING URL</label>
+                      <input
+                        type="url"
+                        required
+                        value={newReelUrl}
+                        onChange={(e) => setNewReelUrl(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-espresso/70 mb-1">HASHTAG</label>
+                      <input
+                        type="text"
+                        value={newReelTag}
+                        onChange={(e) => setNewReelTag(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {reelUploadMode === "file" && (
+                  <div className="max-w-xs">
                     <label className="block text-[11px] font-bold text-espresso/70 mb-1">HASHTAG</label>
                     <input
                       type="text"
@@ -1493,7 +1636,7 @@ export default function AdminDashboard() {
                       className="w-full px-4 py-2.5 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
                     />
                   </div>
-                </div>
+                )}
 
                 <div className="flex justify-end pt-2">
                   <button
