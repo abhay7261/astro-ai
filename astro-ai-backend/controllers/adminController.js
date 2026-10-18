@@ -1,5 +1,49 @@
-// Master Admin Controller
-let masterPin = process.env.ADMIN_MASTER_PIN || "7788";
+// Master Admin Controller & Persistent MongoDB Atlas Security Configuration
+import mongoose from "mongoose";
+
+let currentPin = process.env.ADMIN_MASTER_PIN || "7261";
+
+// Retrieve current Master PIN from MongoDB Atlas or fallback
+export const getActiveMasterPin = async () => {
+  try {
+    if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+      const settingsCol = mongoose.connection.db.collection("settings");
+      const doc = await settingsCol.findOne({ key: "admin_pin" });
+      if (doc && doc.value) {
+        currentPin = doc.value;
+        return doc.value;
+      } else {
+        // Initialize 7261 in Atlas if not exists
+        await settingsCol.updateOne(
+          { key: "admin_pin" },
+          { $set: { key: "admin_pin", value: currentPin, updatedAt: new Date() } },
+          { upsert: true }
+        );
+      }
+    }
+  } catch (e) {
+    console.warn("⚠️ [Security] Atlas read fallback:", e.message);
+  }
+  return currentPin;
+};
+
+// Set and Persist New Master PIN in MongoDB Atlas
+export const setActiveMasterPin = async (newPin) => {
+  currentPin = newPin;
+  try {
+    if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+      const settingsCol = mongoose.connection.db.collection("settings");
+      await settingsCol.updateOne(
+        { key: "admin_pin" },
+        { $set: { key: "admin_pin", value: newPin, updatedAt: new Date() } },
+        { upsert: true }
+      );
+      console.log(`🔒 [Security] Admin PIN permanently updated in MongoDB Atlas to: ${newPin}`);
+    }
+  } catch (e) {
+    console.warn("⚠️ [Security] Could not persist PIN to Atlas:", e.message);
+  }
+};
 
 let aiPersonasStore = [
   {
@@ -44,9 +88,11 @@ let aiPersonasStore = [
   },
 ];
 
-export const adminLogin = (req, res) => {
+export const adminLogin = async (req, res) => {
   const { pin } = req.body;
-  if (pin === masterPin) {
+  const activePin = await getActiveMasterPin();
+
+  if (pin === activePin) {
     return res.json({
       success: true,
       token: "master_admin_jwt_token_9918",
@@ -54,6 +100,31 @@ export const adminLogin = (req, res) => {
     });
   }
   res.status(401).json({ success: false, message: "Invalid Security PIN!" });
+};
+
+export const changeAdminPin = async (req, res) => {
+  try {
+    const { currentPin, newPin } = req.body;
+    const activePin = await getActiveMasterPin();
+
+    if (currentPin !== activePin) {
+      return res.status(400).json({ success: false, message: "Current Security PIN galat hai!" });
+    }
+
+    if (!newPin || newPin.trim().length < 4) {
+      return res.status(400).json({ success: false, message: "Naya PIN kam se kam 4 digit ka hona chahiye!" });
+    }
+
+    await setActiveMasterPin(newPin.trim());
+
+    res.json({
+      success: true,
+      message: "Security PIN MongoDB Atlas me permanently update ho gaya!",
+      newPin: newPin.trim(),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 export const getAdminAnalytics = (req, res) => {

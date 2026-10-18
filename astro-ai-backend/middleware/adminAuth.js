@@ -1,6 +1,8 @@
-// Master Admin Authentication & Security Guard
-export const verifyAdmin = (req, res, next) => {
-  const masterPin = process.env.ADMIN_MASTER_PIN || "7788";
+// Master Admin Authentication & Security Guard (MongoDB Atlas Synced)
+import { getActiveMasterPin } from "../controllers/adminController.js";
+
+export const verifyAdmin = async (req, res, next) => {
+  const masterPin = await getActiveMasterPin();
   const authHeader = req.headers.authorization;
   const pinHeader = req.headers["x-admin-pin"] || req.body?.pin;
 

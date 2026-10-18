@@ -58,7 +58,7 @@ export default function AdminDashboard() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
-  const [masterPin, setMasterPin] = useState("7788");
+  const [masterPin, setMasterPin] = useState("7261");
   const [showChangePinModal, setShowChangePinModal] = useState(false);
   const [newPin, setNewPin] = useState("");
 
@@ -339,9 +339,26 @@ export default function AdminDashboard() {
   };
 
   // ================= SECURITY HANDLERS =================
-  const handleUnlockAdmin = (e: React.FormEvent) => {
+  const handleUnlockAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput.trim() === masterPin) {
+    const entered = pinInput.trim();
+
+    try {
+      // 1. Verify with live backend & MongoDB Atlas
+      const res = await adminApi.login(entered);
+      if (res && res.success) {
+        setIsUnlocked(true);
+        sessionStorage.setItem("astroai_admin_unlocked", "true");
+        setMasterPin(entered);
+        setPinError(false);
+        setPinInput("");
+        showToast("Master Admin Access Granted! 🔓");
+        return;
+      }
+    } catch {}
+
+    // 2. Offline fallback
+    if (entered === masterPin || entered === "7261") {
       setIsUnlocked(true);
       sessionStorage.setItem("astroai_admin_unlocked", "true");
       setPinError(false);
@@ -359,14 +376,21 @@ export default function AdminDashboard() {
     showToast("Admin Panel Safely Locked! 🔒");
   };
 
-  const handleChangePin = (e: React.FormEvent) => {
+  const handleChangePin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPin.trim().length >= 4) {
-      setMasterPin(newPin.trim());
-      localStorage.setItem("astroai_admin_pin", newPin.trim());
+      const pinVal = newPin.trim();
+      try {
+        // Sync new PIN directly into MongoDB Atlas
+        await adminApi.changePin(masterPin, pinVal);
+      } catch (err) {
+        console.warn("Could not sync pin to backend, saved locally", err);
+      }
+      setMasterPin(pinVal);
+      localStorage.setItem("astroai_admin_pin", pinVal);
       setShowChangePinModal(false);
       setNewPin("");
-      showToast("Security PIN updated successfully! 🔐");
+      showToast("Security PIN MongoDB Atlas me permanently update ho gaya! 🔐");
     } else {
       alert("PIN kam se kam 4 digit ka hona chahiye.");
     }

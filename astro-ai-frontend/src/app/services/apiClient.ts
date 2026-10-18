@@ -189,6 +189,18 @@ export const adminApi = {
       body: JSON.stringify({ title, body }),
     });
   },
+  login: async (pin: string) => {
+    return await apiRequest<{ success: boolean; token: string; message: string }>("/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ pin }),
+    });
+  },
+  changePin: async (currentPin: string, newPin: string) => {
+    return await apiRequest<{ success: boolean; message: string; newPin?: string }>("/admin/change-pin", {
+      method: "POST",
+      body: JSON.stringify({ currentPin, newPin }),
+    });
+  },
 };
 
 // Convenient alias for AI Bot management

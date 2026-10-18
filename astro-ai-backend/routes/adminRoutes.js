@@ -1,6 +1,7 @@
 import express from "express";
 import {
   adminLogin,
+  changeAdminPin,
   getAdminAnalytics,
   getAIPersonas,
   addAIPersona,
@@ -11,6 +12,7 @@ import {
 const router = express.Router();
 
 router.post("/login", adminLogin);
+router.post("/change-pin", changeAdminPin);
 router.get("/analytics", getAdminAnalytics);
 router.get("/ai-bots", getAIPersonas);
 router.post("/ai-bots", addAIPersona);
