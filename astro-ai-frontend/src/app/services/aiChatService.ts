@@ -28,7 +28,7 @@ export interface UserAstrologicalContext {
 export const USE_REAL_BACKEND = true;
 export const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL 
   ? `${process.env.NEXT_PUBLIC_API_URL}/ai/chat` 
-  : "http://localhost:5000/api/v1/ai/chat";
+  : "https://astro-ai-x5c6.onrender.com/api/v1/ai/chat";
 
 /**
  * Sends a question to the AI Astrologer.

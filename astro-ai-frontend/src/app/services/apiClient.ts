@@ -3,7 +3,7 @@
  * Connects frontend views and components directly to the Node.js MVC backend.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://astro-ai-x5c6.onrender.com/api/v1";
 
 // Generic request helper with timeout and fallback
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T | null> {
