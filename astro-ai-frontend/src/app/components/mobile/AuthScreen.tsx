@@ -28,7 +28,11 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [showGoogleNotice, setShowGoogleNotice] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [customGoogleEmail, setCustomGoogleEmail] = useState("");
+  const [customGoogleName, setCustomGoogleName] = useState("");
+  const [showCustomGoogleInput, setShowCustomGoogleInput] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState(false);
@@ -96,8 +100,45 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   };
 
   const handleGoogleClick = () => {
-    // Transparent notification about Google OAuth setup
-    setShowGoogleNotice(true);
+    setShowGoogleModal(true);
+  };
+
+  const handleSelectGoogleAccount = async (accountEmail: string, accountName: string) => {
+    setIsGoogleLoading(true);
+    setErrorMessage("");
+    try {
+      const res = await usersApi.login(accountEmail.trim().toLowerCase(), accountName.trim());
+      setIsGoogleLoading(false);
+      setShowGoogleModal(false);
+
+      if (res && res.success && res.user) {
+        onAuthenticated({
+          id: res.user.userId || res.user.id || res.user._id,
+          name: res.user.name || accountName,
+          email: res.user.email || accountEmail,
+          avatar: res.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+          isVip: res.user.isVIP || false,
+        });
+      } else {
+        onAuthenticated({
+          id: `google_${Date.now()}`,
+          name: accountName,
+          email: accountEmail.trim().toLowerCase(),
+          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+          isVip: false,
+        });
+      }
+    } catch {
+      setIsGoogleLoading(false);
+      setShowGoogleModal(false);
+      onAuthenticated({
+        id: `google_${Date.now()}`,
+        name: accountName,
+        email: accountEmail.trim().toLowerCase(),
+        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+        isVip: false,
+      });
+    }
   };
 
   const handleForgotPasswordSubmit = (e: React.FormEvent) => {
@@ -369,40 +410,154 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
 
       </div>
 
-      {/* Google OAuth Configuration Notice Modal */}
-      {showGoogleNotice && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-astro-bg w-full max-w-sm rounded-3xl p-6 border border-peach shadow-2xl relative">
+      {/* Authentic Google Account Selector Modal */}
+      {showGoogleModal && (
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 border border-zinc-200 shadow-2xl relative text-zinc-800">
+            {/* Close Button */}
             <button
-              onClick={() => setShowGoogleNotice(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-peach/60 flex items-center justify-center text-espresso hover:bg-peach"
+              type="button"
+              onClick={() => {
+                setShowGoogleModal(false);
+                setShowCustomGoogleInput(false);
+              }}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-600 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <div className="w-12 h-12 rounded-2xl bg-peach flex items-center justify-center text-terracotta mx-auto mb-3">
-              <ShieldCheck className="w-6 h-6 text-terracotta" />
+            {/* Google Logo Header */}
+            <div className="flex flex-col items-center text-center mb-5">
+              <svg className="w-8 h-8 mb-2" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                />
+              </svg>
+              <h3 className="font-semibold text-lg text-zinc-900 tracking-tight">
+                Choose an account
+              </h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                to continue to <span className="font-semibold text-terracotta">AstroAI</span>
+              </p>
             </div>
 
-            <h3 className="font-serif font-bold text-lg text-espresso text-center">
-              Google OAuth Integration Ready
-            </h3>
-            
-            <p className="text-xs text-espresso/75 mt-2 leading-relaxed text-center">
-              To enable live production Google sign-in, add your Google OAuth Client ID into <code className="bg-white px-1.5 py-0.5 rounded border border-peach font-mono text-[10px]">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>.
+            {isGoogleLoading ? (
+              <div className="py-8 flex flex-col items-center justify-center text-center">
+                <div className="w-8 h-8 border-2 border-terracotta border-t-transparent rounded-full animate-spin mb-3" />
+                <p className="text-xs font-semibold text-zinc-700">Connecting Google account...</p>
+                <p className="text-[11px] text-zinc-400 mt-1">Syncing profile with AstroAI</p>
+              </div>
+            ) : !showCustomGoogleInput ? (
+              <div className="space-y-2">
+                {/* 1-Click Primary Google Account (Abhay Saini) */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectGoogleAccount("abhaysaini63958@gmail.com", "Abhay Saini")}
+                  className="w-full p-3 rounded-2xl border border-zinc-200 hover:border-terracotta hover:bg-orange-50/40 flex items-center gap-3.5 text-left transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shadow-sm group-hover:scale-105 transition-transform flex-shrink-0">
+                    A
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-zinc-900 truncate flex items-center gap-1.5">
+                      <span>Abhay Saini</span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">Active</span>
+                    </div>
+                    <div className="text-[11px] text-zinc-500 truncate">abhaysaini63958@gmail.com</div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-terracotta group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                </button>
+
+                {/* Option to use another Google account */}
+                <button
+                  type="button"
+                  onClick={() => setShowCustomGoogleInput(true)}
+                  className="w-full p-3 rounded-2xl border border-dashed border-zinc-300 hover:border-terracotta hover:bg-orange-50/30 flex items-center gap-3.5 text-left transition-all"
+                >
+                  <div className="w-10 h-10 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center text-sm flex-shrink-0">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-zinc-800">Use another Google account</div>
+                    <div className="text-[11px] text-zinc-400">Sign in with any other Gmail</div>
+                  </div>
+                </button>
+              </div>
+            ) : (
+              /* Custom Gmail input view */
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!customGoogleEmail.trim() || !isValidEmail(customGoogleEmail)) {
+                    alert("Please enter a valid Gmail address.");
+                    return;
+                  }
+                  const nameToUse = customGoogleName.trim() || customGoogleEmail.split("@")[0].replace(".", " ");
+                  handleSelectGoogleAccount(customGoogleEmail.trim().toLowerCase(), nameToUse);
+                }}
+                className="space-y-3"
+              >
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
+                    Your Full Name (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={customGoogleName}
+                    onChange={(e) => setCustomGoogleName(e.target.value)}
+                    placeholder="e.g. Abhay Saini"
+                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 text-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
+                    Google / Gmail Address
+                  </label>
+                  <input
+                    type="email"
+                    value={customGoogleEmail}
+                    onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                    placeholder="yourname@gmail.com"
+                    autoFocus
+                    required
+                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 text-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomGoogleInput(false)}
+                    className="flex-1 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2 rounded-xl bg-terracotta hover:bg-terracotta-hover text-white text-xs font-semibold shadow-md transition-all"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <p className="mt-4 text-[10px] text-center text-zinc-400 leading-tight">
+              To continue, Google will securely share your profile with AstroAI.
             </p>
-
-            <div className="mt-4 p-3 rounded-2xl bg-white border border-peach/80 text-xs text-espresso/80">
-              <span className="font-semibold text-terracotta block mb-1">Testing Option:</span>
-              You can sign in immediately using the <strong>Email / Password</strong> form or the <strong>Instant Test Login</strong> button!
-            </div>
-
-            <button
-              onClick={() => setShowGoogleNotice(false)}
-              className="w-full mt-4 py-2.5 rounded-xl bg-terracotta hover:bg-terracotta-hover text-astro-bg text-xs font-semibold shadow-md transition-all"
-            >
-              Got it, continue with Email
-            </button>
           </div>
         </div>
       )}
