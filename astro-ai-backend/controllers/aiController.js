@@ -74,16 +74,22 @@ You MUST respond strictly in the following JSON format:
 }`;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
         }),
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.warn("⚠️ [Gemini AI] API status:", response.status);
@@ -120,7 +126,28 @@ export const chatWithAIAstrologer = async (req, res) => {
     });
   }
 
-  // 1. Try Live Google Gemini AI First
+  // Fast-path instant greeting recognition (< 10ms)
+  const qClean = message.trim().toLowerCase();
+  if (
+    qClean === "ram ram" || qClean === "ram ram ji" ||
+    qClean === "hari om" || qClean === "hari om ji" ||
+    qClean === "namaste" || qClean === "namaste ji" ||
+    qClean === "pranam" || qClean === "pranam pandit ji" ||
+    qClean.includes("radhe radhe") || qClean.includes("jai shree ram") ||
+    qClean === "hello" || qClean === "hi"
+  ) {
+    return res.json({
+      success: true,
+      reply: "राम राम! 🙏 प्रणाम। आपका AstroAI में स्वागत है। कहिए, आज ग्रह-नक्षत्र आपके जीवन के किस पहलू (विवाह, करियर, धन, या स्वास्थ्य) पर आपका मार्गदर्शन कर सकते हैं? आप बेझिझक अपना प्रश्न पूछें।",
+      remedy: "दिन की शुरुआत सूर्य देव को तांबे के लोटे से अर्घ्य देकर और गायत्री मंत्र के जप से करें।",
+      mantra: "ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्",
+      source: "AstroAI Vedic Engine",
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      remainingFreeQuestions: 5
+    });
+  }
+
+  // 1. Try Live Google Gemini AI First (with 3s timeout)
   let analysis = await askGoogleGemini(message, context);
 
   // 2. Fallback to In-house Vedic Engine if Gemini API is unreachable

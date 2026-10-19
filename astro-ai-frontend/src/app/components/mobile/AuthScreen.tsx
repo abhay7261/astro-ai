@@ -64,25 +64,33 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
 
     setIsLoading(true);
 
+    const displayName = activeTab === "signup" ? name.trim() : email.split("@")[0].replace(".", " ");
+    const cleanEmail = email.trim().toLowerCase();
+
+    // High-speed race: if backend responds in 1.8s use it, otherwise log in instantly
     try {
-      const displayName = activeTab === "signup" ? name.trim() : email.split("@")[0].replace(".", " ");
-      const res = await usersApi.login(email.trim().toLowerCase(), displayName);
+      const loginPromise = usersApi.login(cleanEmail, displayName);
+      const timeoutPromise = new Promise<{ timeout: true }>((resolve) =>
+        setTimeout(() => resolve({ timeout: true }), 1800)
+      );
+
+      const result: any = await Promise.race([loginPromise, timeoutPromise]);
       setIsLoading(false);
 
-      if (res && res.success && res.user) {
+      if (result && !result.timeout && result.success && result.user) {
         onAuthenticated({
-          id: res.user.userId || res.user.id || res.user._id,
-          name: res.user.name,
-          email: res.user.email,
-          avatar: res.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
-          isVip: res.user.isVIP || false,
+          id: result.user.userId || result.user.id || result.user._id,
+          name: result.user.name,
+          email: result.user.email,
+          avatar: result.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+          isVip: result.user.isVIP || false,
         });
       } else {
-        // Fallback local session if backend unreachable
+        // Fast optimistic fallback
         onAuthenticated({
-          id: `user_${Date.now()}`,
+          id: `u-${Date.now()}`,
           name: displayName,
-          email: email.trim().toLowerCase(),
+          email: cleanEmail,
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
           isVip: false,
         });
@@ -90,9 +98,9 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
     } catch {
       setIsLoading(false);
       onAuthenticated({
-        id: `user_${Date.now()}`,
-        name: activeTab === "signup" ? name.trim() : email.split("@")[0].replace(".", " "),
-        email: email.trim().toLowerCase(),
+        id: `u-${Date.now()}`,
+        name: displayName,
+        email: cleanEmail,
         avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
         isVip: false,
       });
@@ -103,42 +111,37 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
     setShowGoogleModal(true);
   };
 
-  const handleSelectGoogleAccount = async (accountEmail: string, accountName: string) => {
+  const handleSelectGoogleAccount = (accountEmail: string, accountName: string) => {
     setIsGoogleLoading(true);
     setErrorMessage("");
-    try {
-      const res = await usersApi.login(accountEmail.trim().toLowerCase(), accountName.trim());
-      setIsGoogleLoading(false);
-      setShowGoogleModal(false);
 
-      if (res && res.success && res.user) {
-        onAuthenticated({
-          id: res.user.userId || res.user.id || res.user._id,
-          name: res.user.name || accountName,
-          email: res.user.email || accountEmail,
-          avatar: res.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
-          isVip: res.user.isVIP || false,
-        });
-      } else {
-        onAuthenticated({
-          id: `google_${Date.now()}`,
-          name: accountName,
-          email: accountEmail.trim().toLowerCase(),
-          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
-          isVip: false,
-        });
-      }
-    } catch {
+    const cleanEmail = accountEmail.trim().toLowerCase();
+    const cleanName = accountName.trim() || cleanEmail.split("@")[0].replace(".", " ");
+    const instantUser: AuthUser = {
+      id: `u-${Date.now()}`,
+      name: cleanName,
+      email: cleanEmail,
+      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+      isVip: false,
+    };
+
+    // Instant smooth transition in 250ms
+    setTimeout(() => {
       setIsGoogleLoading(false);
       setShowGoogleModal(false);
-      onAuthenticated({
-        id: `google_${Date.now()}`,
-        name: accountName,
-        email: accountEmail.trim().toLowerCase(),
-        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
-        isVip: false,
-      });
-    }
+      onAuthenticated(instantUser);
+    }, 250);
+
+    // Background sync directly with MongoDB Atlas on Render
+    usersApi.login(cleanEmail, cleanName)
+      .then((res) => {
+        if (res && res.success && res.user) {
+          try {
+            localStorage.setItem("astroai_user_session", JSON.stringify(res.user));
+          } catch (e) {}
+        }
+      })
+      .catch(() => {});
   };
 
   const handleForgotPasswordSubmit = (e: React.FormEvent) => {

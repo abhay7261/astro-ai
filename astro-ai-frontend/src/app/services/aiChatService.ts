@@ -38,17 +38,42 @@ export async function sendAIAstrologerMessage(
   userQuery: string,
   context?: UserAstrologicalContext
 ): Promise<{ text: string; remedy?: string; mantra?: string }> {
-  // If friend's backend is enabled, make real HTTP POST request
+  const qClean = userQuery.trim().toLowerCase();
+  const userName = context?.name || "Seeker";
+
+  // Fast-path instant response for Vedic Greetings (< 200ms)
+  if (
+    qClean === "ram ram" || qClean === "ram ram ji" ||
+    qClean === "hari om" || qClean === "hari om ji" ||
+    qClean === "namaste" || qClean === "namaste ji" ||
+    qClean === "pranam" || qClean === "pranam pandit ji" ||
+    qClean.includes("radhe radhe") || qClean.includes("jai shree ram") ||
+    qClean === "hello" || qClean === "hi"
+  ) {
+    return {
+      text: `राम राम! 🙏 प्रणाम ${userName}। आपका AstroAI में स्वागत है। कहिए, आज ग्रह-नक्षत्र आपके जीवन के किस पहलू (विवाह, करियर, धन, या स्वास्थ्य) पर आपका मार्गदर्शन कर सकते हैं? आप बेझिझक अपना प्रश्न पूछें।`,
+      remedy: "दिन की शुरुआत सूर्य देव को तांबे के लोटे से अर्घ्य देकर और गायत्री मंत्र के जप से करें।",
+      mantra: "ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्",
+    };
+  }
+
+  // If friend's backend is enabled, make real HTTP POST request with 3.5s fast timeout
   if (USE_REAL_BACKEND) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
       const response = await fetch(BACKEND_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           message: userQuery,
           context: context || {},
         }),
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}`);
@@ -61,8 +86,8 @@ export async function sendAIAstrologerMessage(
         mantra: data.mantra,
       };
     } catch (err) {
-      console.warn("Backend API error, falling back to Vedic engine:", err);
-      // Fallback to local Vedic engine if backend is down
+      console.warn("Backend API timeout/error, falling back to instant Vedic engine:", err);
+      // Fallback to local high-speed Vedic engine if server is cold or slow
     }
   }
 
@@ -70,7 +95,6 @@ export async function sendAIAstrologerMessage(
   await new Promise((resolve) => setTimeout(resolve, 1400));
 
   const query = userQuery.toLowerCase();
-  const userName = context?.name || "Seeker";
 
   // 1. Marriage / Love / Relationship
   if (

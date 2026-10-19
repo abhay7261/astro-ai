@@ -9,6 +9,7 @@ import {
   Flame, Music2, CheckCircle2, Bookmark
 } from "lucide-react";
 import AstroChatModal from "../AstroChatModal";
+import { reelsApi } from "../../services/apiClient";
 
 export interface ReelItem {
   id: string;
@@ -28,6 +29,7 @@ export interface ReelItem {
   commentsCount: number;
   sharesCount: number;
   tags: string[];
+  videoUrl?: string;
   comments: {
     id: string;
     userName: string;
@@ -157,6 +159,7 @@ const reelsList: ReelItem[] = [
 
 export default function InstagramReelsPlayer() {
   const router = useRouter();
+  const [allReels, setAllReels] = useState<ReelItem[]>(reelsList);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
@@ -176,16 +179,101 @@ export default function InstagramReelsPlayer() {
   } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const currentReel = reelsList[currentIndex];
+  const touchStartY = useRef<number>(0);
+  const lastWheelTime = useRef<number>(0);
+  const currentReel = allReels[currentIndex] || reelsList[0];
+
+  // Fetch Live Reels from Backend & LocalStorage
+  useEffect(() => {
+    const fetchReels = async () => {
+      try {
+        const liveReels = await reelsApi.getAll();
+        const customReels: ReelItem[] = [];
+
+        if (liveReels && Array.isArray(liveReels) && liveReels.length > 0) {
+          liveReels.forEach((r: any, idx: number) => {
+            customReels.push({
+              id: r.id || r._id || `backend-reel-${idx}`,
+              title: r.title || "Vedic Astro Upay & Prediction",
+              description: r.description || "Daily astrological insights and remedies.",
+              astrologerName: r.astrologerName || "Acharya Vidyadhar",
+              astrologerTitle: "Vedic Astrologer",
+              astrologerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
+              astrologerSpecialty: "Vedic Remedies",
+              astrologerExp: "15+ Yrs",
+              themeColor: "#E11D48",
+              bgGradient: "from-[#0F172A] via-[#1E1B4B] to-[#31102A]",
+              symbol: "🪐",
+              mantra: "ॐ नमः शिवाय",
+              audioName: "Original Audio • AstroAI Chants",
+              likes: r.likes || 140,
+              commentsCount: 16,
+              sharesCount: 35,
+              tags: [r.tag || "#AstroReels", "#DailyUpay"],
+              videoUrl: r.videoUrl,
+              comments: [],
+            });
+          });
+        }
+
+        // Also merge any local admin uploaded reels
+        try {
+          const localStr = localStorage.getItem("astroai_admin_reels");
+          if (localStr) {
+            const localReels = JSON.parse(localStr);
+            if (Array.isArray(localReels)) {
+              localReels.forEach((lr: any) => {
+                if (!customReels.some((cr) => cr.id === lr.id || (lr.videoUrl && cr.videoUrl === lr.videoUrl))) {
+                  customReels.unshift({
+                    id: lr.id || `local-reel-${Date.now()}`,
+                    title: lr.title || "AI Astro Video Reel",
+                    description: lr.description || "Daily astrology video",
+                    astrologerName: lr.astrologerName || "AstroAI Creator",
+                    astrologerTitle: "Vedic Astrologer",
+                    astrologerAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+                    astrologerSpecialty: "Daily Upay",
+                    astrologerExp: "Creator",
+                    themeColor: "#EA580C",
+                    bgGradient: "from-[#7C2D12] via-[#9A3412] to-[#18181B]",
+                    symbol: "🎬",
+                    mantra: "ॐ श्री गणेशाय नमः",
+                    audioName: "Original Audio • Uploaded Reel",
+                    likes: 240,
+                    commentsCount: 19,
+                    sharesCount: 62,
+                    tags: [lr.tag || "#UploadedReel", "#AstroAI"],
+                    videoUrl: lr.videoUrl,
+                    comments: [],
+                  });
+                }
+              });
+            }
+          }
+        } catch (e) {}
+
+        if (customReels.length > 0) {
+          setAllReels([...customReels, ...reelsList]);
+        }
+      } catch (e) {
+        console.warn("Reels fetch error:", e);
+      }
+    };
+
+    fetchReels();
+  }, []);
 
   // Initialize likes state
   useEffect(() => {
-    const initLikes: Record<string, { liked: boolean; count: number }> = {};
-    reelsList.forEach((r) => {
-      initLikes[r.id] = { liked: false, count: r.likes };
+    setLikesState((prev) => {
+      const updated = { ...prev };
+      allReels.forEach((r) => {
+        if (!updated[r.id]) {
+          updated[r.id] = { liked: false, count: r.likes };
+        }
+      });
+      return updated;
     });
-    setLikesState(initLikes);
-  }, []);
+  }, [allReels]);
 
   // Keyboard navigation (Up/Down arrow keys)
   useEffect(() => {
@@ -206,10 +294,10 @@ export default function InstagramReelsPlayer() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex, showCommentsDrawer]);
+  }, [currentIndex, allReels.length, showCommentsDrawer]);
 
   const handleNextReel = () => {
-    if (currentIndex < reelsList.length - 1) {
+    if (currentIndex < allReels.length - 1) {
       setCurrentIndex((prev) => prev + 1);
       setIsPlaying(true);
     }
@@ -316,66 +404,162 @@ export default function InstagramReelsPlayer() {
         </div>
       )}
 
-      {/* Main Reels Viewport: Instagram Phone Ratio Container */}
+      {/* Main Reels Viewport: Instagram Phone Ratio Container with Touch & Wheel Navigation */}
       <div 
         ref={containerRef}
+        onTouchStart={(e) => {
+          touchStartY.current = e.touches[0].clientY;
+        }}
+        onTouchEnd={(e) => {
+          const deltaY = touchStartY.current - e.changedTouches[0].clientY;
+          if (deltaY > 40) {
+            handleNextReel();
+          } else if (deltaY < -40) {
+            handlePrevReel();
+          }
+        }}
+        onWheel={(e) => {
+          const now = Date.now();
+          if (now - lastWheelTime.current < 350) return;
+          lastWheelTime.current = now;
+          if (e.deltaY > 25) {
+            handleNextReel();
+          } else if (e.deltaY < -25) {
+            handlePrevReel();
+          }
+        }}
         className="relative w-full h-[100dvh] max-w-md mx-auto sm:max-h-[92dvh] sm:rounded-3xl sm:border sm:border-white/15 overflow-hidden shadow-2xl bg-black flex flex-col justify-between"
       >
         
-        {/* Background Visual Layer: Celestial Cosmic Canvas / Animated Aura */}
-        <div 
-          onClick={handleScreenDoubleTap}
-          className={`absolute inset-0 bg-gradient-to-b ${currentReel.bgGradient} cursor-pointer transition-all duration-700`}
-        >
-          {/* Cosmic Star Dust Particles */}
-          <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#FFE5D4_1px,transparent_1px)] [background-size:18px_18px] animate-pulse pointer-events-none" />
-
-          {/* Central Animated Astrological Aura Wheel */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-            <div className={`relative w-72 h-72 sm:w-80 sm:h-80 rounded-full border border-white/10 flex items-center justify-center ${isPlaying ? "animate-spin-slow" : ""}`}>
-              {/* Sacred Ring & Concentric Circles */}
-              <div className="absolute inset-2 rounded-full border border-amber-300/15" />
-              <div className="absolute inset-8 rounded-full border border-dashed border-peach/25" />
-              <div className="absolute inset-16 rounded-full border border-white/20 bg-white/5 backdrop-blur-xs flex items-center justify-center">
-                <span className="text-6xl sm:text-7xl filter drop-shadow-[0_0_20px_rgba(255,200,100,0.4)]">
-                  {currentReel.symbol}
-                </span>
-              </div>
-            </div>
-            
-            {/* Ambient Cosmic Radial Glow */}
-            <div 
-              className="absolute w-96 h-96 rounded-full blur-3xl opacity-35"
-              style={{ background: currentReel.themeColor }}
-            />
-          </div>
-
-          {/* Sanskrit Mantra Ribbon */}
-          <div className="absolute top-24 left-0 right-0 text-center pointer-events-none">
-            <span className="inline-block px-3.5 py-1 rounded-full bg-black/40 border border-white/15 text-amber-200/90 font-serif text-xs tracking-widest backdrop-blur-md shadow-lg">
-              {currentReel.mantra}
-            </span>
-          </div>
-
-          {/* Large Heart Explosion on Double-Tap */}
-          {showHeartBurst && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 animate-in zoom-in-50 fade-out duration-700">
-              <Heart className="w-28 h-28 text-rose-500 fill-rose-500 drop-shadow-[0_0_35px_rgba(244,63,94,0.9)] animate-bounce" />
-            </div>
+        {/* Floating Quick Reel Scroll Buttons */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-40 pointer-events-auto">
+          {currentIndex > 0 ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrevReel();
+              }}
+              className="w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 text-white flex items-center justify-center active:scale-90 transition-all shadow-xl"
+              title="Previous Reel"
+            >
+              <ChevronUp className="w-5 h-5 text-amber-300" />
+            </button>
+          ) : (
+            <div className="w-8 h-8" />
           )}
 
-          {/* Big Pause/Play Indicator overlay when paused */}
-          {!isPlaying && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 bg-black/30 backdrop-blur-[2px]">
-              <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white">
-                <Play className="w-8 h-8 fill-white translate-x-0.5" />
-              </div>
-            </div>
-          )}
+          <div className="px-2 py-0.5 rounded-full bg-black/75 text-[10px] font-mono text-amber-200 text-center backdrop-blur-md border border-white/15 shadow-md">
+            {currentIndex + 1}/{allReels.length}
+          </div>
 
-          {/* Dark bottom gradient overlay for clear caption readability */}
-          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none" />
+          {currentIndex < allReels.length - 1 ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNextReel();
+              }}
+              className="w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 text-white flex items-center justify-center active:scale-90 transition-all shadow-xl"
+              title="Next Reel"
+            >
+              <ChevronDown className="w-5 h-5 text-amber-300" />
+            </button>
+          ) : (
+            <div className="w-8 h-8" />
+          )}
         </div>
+
+        {/* Background Visual Layer: Real Video Player OR Celestial Cosmic Canvas */}
+        {currentReel.videoUrl ? (
+          <div 
+            onClick={handleScreenDoubleTap}
+            className="absolute inset-0 bg-black cursor-pointer flex items-center justify-center overflow-hidden"
+          >
+            <video
+              key={currentReel.videoUrl}
+              src={currentReel.videoUrl}
+              autoPlay
+              loop
+              playsInline
+              muted={isMuted}
+              className="w-full h-full object-cover"
+            />
+            {/* Subtle Gradient Overlays for Readability */}
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 via-black/30 to-transparent pointer-events-none" />
+            <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none" />
+
+            {/* Large Heart Explosion on Double-Tap */}
+            {showHeartBurst && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 animate-in zoom-in-50 fade-out duration-700">
+                <Heart className="w-28 h-28 text-rose-500 fill-rose-500 drop-shadow-[0_0_35px_rgba(244,63,94,0.9)] animate-bounce" />
+              </div>
+            )}
+
+            {/* Big Pause/Play Indicator overlay when paused */}
+            {!isPlaying && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 bg-black/40 backdrop-blur-[2px]">
+                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white">
+                  <Play className="w-8 h-8 fill-white translate-x-0.5" />
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div 
+            onClick={handleScreenDoubleTap}
+            className={`absolute inset-0 bg-gradient-to-b ${currentReel.bgGradient} cursor-pointer transition-all duration-700`}
+          >
+            {/* Cosmic Star Dust Particles */}
+            <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#FFE5D4_1px,transparent_1px)] [background-size:18px_18px] animate-pulse pointer-events-none" />
+
+            {/* Central Animated Astrological Aura Wheel */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+              <div className={`relative w-72 h-72 sm:w-80 sm:h-80 rounded-full border border-white/10 flex items-center justify-center ${isPlaying ? "animate-spin-slow" : ""}`}>
+                {/* Sacred Ring & Concentric Circles */}
+                <div className="absolute inset-2 rounded-full border border-amber-300/15" />
+                <div className="absolute inset-8 rounded-full border border-dashed border-peach/25" />
+                <div className="absolute inset-16 rounded-full border border-white/20 bg-white/5 backdrop-blur-xs flex items-center justify-center">
+                  <span className="text-6xl sm:text-7xl filter drop-shadow-[0_0_20px_rgba(255,200,100,0.4)]">
+                    {currentReel.symbol}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Ambient Cosmic Radial Glow */}
+              <div 
+                className="absolute w-96 h-96 rounded-full blur-3xl opacity-35"
+                style={{ background: currentReel.themeColor }}
+              />
+            </div>
+
+            {/* Sanskrit Mantra Ribbon */}
+            <div className="absolute top-24 left-0 right-0 text-center pointer-events-none">
+              <span className="inline-block px-3.5 py-1 rounded-full bg-black/40 border border-white/15 text-amber-200/90 font-serif text-xs tracking-widest backdrop-blur-md shadow-lg">
+                {currentReel.mantra}
+              </span>
+            </div>
+
+            {/* Large Heart Explosion on Double-Tap */}
+            {showHeartBurst && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 animate-in zoom-in-50 fade-out duration-700">
+                <Heart className="w-28 h-28 text-rose-500 fill-rose-500 drop-shadow-[0_0_35px_rgba(244,63,94,0.9)] animate-bounce" />
+              </div>
+            )}
+
+            {/* Big Pause/Play Indicator overlay when paused */}
+            {!isPlaying && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 bg-black/30 backdrop-blur-[2px]">
+                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white">
+                  <Play className="w-8 h-8 fill-white translate-x-0.5" />
+                </div>
+              </div>
+            )}
+
+            {/* Dark bottom gradient overlay for clear caption readability */}
+            <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none" />
+          </div>
+        )}
 
         {/* 1. TOP HEADER OVERLAY (Instagram style) */}
         <div className="relative z-20 flex items-center justify-between p-4 pt-5 bg-gradient-to-b from-black/80 via-black/40 to-transparent">

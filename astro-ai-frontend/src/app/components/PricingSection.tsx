@@ -3,14 +3,15 @@
 import { useState, useEffect } from "react";
 import { 
   Check, Sparkles, Crown, Zap, Shield, ArrowRight, X, 
-  Smartphone, CreditCard, Clock, AlertCircle, CheckCircle2, RefreshCw
+  Smartphone, CreditCard, Clock, AlertCircle, CheckCircle2, RefreshCw, QrCode
 } from "lucide-react";
+import { subscriptionsApi } from "../services/apiClient";
 
 export default function PricingSection() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedUpiApp, setSelectedUpiApp] = useState("phonepe");
+  const [paymentStep, setPaymentStep] = useState<"choose" | "qr" | "success">("choose");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isMandateSuccess, setIsMandateSuccess] = useState(false);
 
   // Mandate Configuration (Synced with Admin or Default)
   const [mandateConfig, setMandateConfig] = useState({
@@ -25,13 +26,10 @@ export default function PricingSection() {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/v1/subscriptions/config");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.config) {
-            setMandateConfig(data.config);
-            return;
-          }
+        const data = await subscriptionsApi.getConfig();
+        if (data && data.config) {
+          setMandateConfig(data.config);
+          return;
         }
       } catch (e) {
         // Fallback to localStorage
@@ -58,23 +56,25 @@ export default function PricingSection() {
     return () => window.removeEventListener("astroai_mandate_updated", loadConfig);
   }, []);
 
+  const handleStartPayment = () => {
+    // Attempt UPI intent for mobile
+    if (typeof window !== "undefined" && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+      const upiUrl = `upi://pay?pa=astroai@upi&pn=AstroAI%20Vedic&am=${mandateConfig.trialSetupFee}.00&cu=INR&tn=VIP%20Trial%20Pass`;
+      window.location.href = upiUrl;
+    }
+    setPaymentStep("qr");
+  };
+
   const handleAuthorizeMandate = () => {
     setIsProcessing(true);
 
     // Call live backend API to verify & register mandate
-    fetch("http://localhost:5000/api/v1/subscriptions/verify-mandate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mandateId: `mandate_${Date.now()}`,
-        upiApp: selectedUpiApp,
-        userId: "u-1",
-      }),
-    }).catch((e) => console.warn("Backend mandate sync error", e));
+    subscriptionsApi.verifyMandate(`mandate_${Date.now()}`, selectedUpiApp, "u-1")
+      .catch((e) => console.warn("Backend mandate sync error", e));
 
     setTimeout(() => {
       setIsProcessing(false);
-      setIsMandateSuccess(true);
+      setPaymentStep("success");
       setIsTrialActive(true);
 
       // Save VIP status and trial expiry (3 days from now)
@@ -99,14 +99,10 @@ export default function PricingSection() {
 
   const handleCancelAutoDebit = () => {
     if (confirm("Kya aap sach me apna UPI Auto-Debit Mandate cancel karna chahte hain? Aapka 3-day trial khatam ho jayega.")) {
-      fetch("http://localhost:5000/api/v1/subscriptions/cancel-mandate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandateId: "mandate_active" }),
-      }).catch((e) => console.warn("Backend cancel sync error", e));
+      subscriptionsApi.cancelMandate("mandate_active").catch((e) => console.warn("Backend cancel sync error", e));
 
       setIsTrialActive(false);
-      setIsMandateSuccess(false);
+      setPaymentStep("choose");
       setShowPaymentModal(false);
       localStorage.removeItem("astroai_vip_trial_active");
       localStorage.removeItem("astroai_trial_expires_at");
@@ -332,14 +328,14 @@ export default function PricingSection() {
             <button
               onClick={() => {
                 setShowPaymentModal(false);
-                setIsMandateSuccess(false);
+                setPaymentStep("choose");
               }}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-peach/50 flex items-center justify-center text-espresso hover:bg-peach cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
-            {!isMandateSuccess ? (
+            {paymentStep === "choose" ? (
               <div>
                 {/* Modal Header */}
                 <div className="text-center mb-5">
@@ -456,28 +452,80 @@ export default function PricingSection() {
                   </div>
                 </div>
 
-                {/* Authorize Button */}
+                {/* Proceed Button */}
                 <button
                   type="button"
-                  disabled={isProcessing}
-                  onClick={handleAuthorizeMandate}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-terracotta via-[#C84524] to-amber-600 hover:opacity-95 text-white font-extrabold text-sm shadow-xl shadow-terracotta/30 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-70 cursor-pointer"
+                  onClick={handleStartPayment}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-terracotta via-[#C84524] to-amber-600 hover:opacity-95 text-white font-extrabold text-sm shadow-xl shadow-terracotta/30 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
                 >
-                  {isProcessing ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>NPCI Mandate Authorize Ho Raha Hai...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Shield className="w-4 h-4" />
-                      <span>₹{mandateConfig.trialSetupFee} Pay Karein & Auto-Pay Approve Karein</span>
-                    </>
-                  )}
+                  <Shield className="w-4 h-4" />
+                  <span>₹{mandateConfig.trialSetupFee} Pay Karein ({selectedUpiApp.toUpperCase()})</span>
                 </button>
 
                 <p className="text-[10px] text-center text-espresso/50 mt-3">
                   🔒 Bank e-Mandate Terms: Pehle {mandateConfig.trialDays} din cancel karne par aage ka koi deduction nahi hoga.
+                </p>
+              </div>
+            ) : paymentStep === "qr" ? (
+              /* QR Code & UPI App Trigger Step */
+              <div className="text-center py-2 space-y-4 animate-in fade-in">
+                <div className="flex items-center justify-between pb-2 border-b border-peach">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentStep("choose")}
+                    className="text-xs text-terracotta font-semibold hover:underline"
+                  >
+                    ← Back
+                  </button>
+                  <span className="text-xs font-bold text-espresso">UPI Payment Verification</span>
+                  <div className="w-8" />
+                </div>
+
+                <div className="p-3 bg-white rounded-2xl border border-peach shadow-sm inline-block mx-auto">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?data=upi%3A%2F%2Fpay%3Fpa%3Dastroai%40upi%26pn%3DAstroAI%26am%3D${mandateConfig.trialSetupFee}.00%26cu%3DINR&size=160x160`}
+                    alt="UPI Payment QR Code"
+                    className="w-40 h-40 mx-auto rounded-xl"
+                  />
+                  <p className="text-[11px] font-bold text-espresso mt-2">Scan & Pay ₹{mandateConfig.trialSetupFee}.00</p>
+                  <p className="text-[10px] text-espresso/60">PhonePe • Google Pay • Paytm • BHIM</p>
+                </div>
+
+                {/* Mobile App Open Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const upiUrl = `upi://pay?pa=astroai@upi&pn=AstroAI%20Vedic&am=${mandateConfig.trialSetupFee}.00&cu=INR&tn=VIP%20Trial%20Pass`;
+                    window.location.href = upiUrl;
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Phone me {selectedUpiApp.toUpperCase()} App Kholein</span>
+                </button>
+
+                {/* Verify Button */}
+                <button
+                  type="button"
+                  disabled={isProcessing}
+                  onClick={handleAuthorizeMandate}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:opacity-95 text-white font-extrabold text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-70 cursor-pointer"
+                >
+                  {isProcessing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Payment & Mandate Verify Ho Raha Hai...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Maine Pay Kar Diya • VIP Trial Shuru Karein</span>
+                    </>
+                  )}
+                </button>
+
+                <p className="text-[10px] text-espresso/60">
+                  ℹ️ Payment complete hone ke baad verify button par click karein.
                 </p>
               </div>
             ) : (

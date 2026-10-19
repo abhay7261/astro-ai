@@ -72,12 +72,35 @@ export default function AstroChatModal({ astrologer, onClose }: AstroChatModalPr
     // Simulate Astrologer Realistic Typing & Response
     setIsTyping(true);
     setTimeout(() => {
-      let replyText = `Aapka sawal grahon ke gochar ke hisab se bahut mahatvapurna hai. Aapke lagna aur dasham bhaav (10th house) me Shani aur Guru ka prabhav ban raha hai. Aane wale 3 se 6 mahine me aapko shubh samachar milne ke prabal yog hain. Subah Surya Dev ko arghya dein aur Om Namah Shivaya ka jaap karein.`;
+      const lower = text.toLowerCase().trim();
+      let replyText = `Aapka sawal grahon ke gochar ke hisab se bahut mahatvapurna hai. Lagna aur gochar kundli me grahon ki sthiti dekhkar aane wale samay me shubh parinaam milne ke yog hain. Subah Surya Dev ko arghya dein aur Om Namah Shivaya ka niyamit jaap karein.`;
 
-      if (text.includes("shaadi") || text.includes("marriage")) {
+      // 1. Greetings (Hari Om, Ram Ram, Namaste, etc.)
+      if (
+        lower === "hari om" || lower === "hari om ji" ||
+        lower === "ram ram" || lower === "ram ram ji" ||
+        lower === "namaste" || lower === "namaste ji" ||
+        lower === "pranam" || lower === "pranam pandit ji" ||
+        lower.includes("radhe radhe") || lower.includes("jai shree ram") ||
+        lower === "hello" || lower === "hi"
+      ) {
+        replyText = `Hari Om! 🙏 Har Har Mahadev! Swagat hai aapka. Kahiye, aaj aap apni Janam Kundli, Vivah, Career, Dhan ya Dosh nivaran me se kis vishay par margdarshan chahte hain? Main aapke grahon ka aakalan karke poora sahayog karunga.`;
+      } 
+      // 2. Marriage & Relationships
+      else if (lower.includes("shaadi") || lower.includes("marriage") || lower.includes("vivah") || lower.includes("rishta") || lower.includes("love")) {
         replyText = `Kundli ke 7th house (Saptam Bhaav) me Guru aur Shukra ki drishti ban rahi hai. Agle varsh ke madhya tak vivah ke yog bahut mazboot ho rahe hain. Guruwar ko peele vastra pehenna aur Vishnu Sahasranama ka paath karna atyant labhkari rahega.`;
-      } else if (text.includes("job") || text.includes("career")) {
-        replyText = `Aapke 10th bhaav ke anusar, Suryadev aur Budh ki sthiti karobaar aur naukri me sthirta layegi. Agle 45 dinon me nayi opportunity ke aane ke sanket hain. Karya sthal par pashchim disha ki taraf muh karke baithne se bachein.`;
+      } 
+      // 3. Career, Job & Business
+      else if (lower.includes("job") || lower.includes("career") || lower.includes("naukri") || lower.includes("promotion") || lower.includes("business") || lower.includes("vyapar")) {
+        replyText = `Aapke 10th bhaav (Karam Sthan) ke anusar, Suryadev aur Budh ki sthiti karobaar aur naukri me sthirta layegi. Agle 45 dinon me nayi opportunity ke aane ke sanket hain. Subah taambe ke lote se Surya ko jal arpit karein.`;
+      } 
+      // 4. Money & Finance
+      else if (lower.includes("dhan") || lower.includes("paisa") || lower.includes("money") || lower.includes("karz") || lower.includes("loss")) {
+        replyText = `2nd (Dhan) aur 11th (Labh) house me shubh gochar se aane wale samay me ruka hua paisa aane ke yog ban rahe hain. Shukrawar ko Laxmi ji ke samaksh ghee ka deepak jalayein.`;
+      }
+      // 5. Shani, Rahu, Ketu or Dosha
+      else if (lower.includes("shani") || lower.includes("dosh") || lower.includes("rahu") || lower.includes("ketu") || lower.includes("sade sati") || lower.includes("problem")) {
+        replyText = `Grahon ki dasha ke anusar, Shanivaar ke din peepal ke vriksh ke paas sarson ke tel ka deepak jalayein aur Hanuman Chalisa ka paath karein. Isse sabhi prakar ke dosha shant hote hain.`;
       }
 
       const astroMsg: Message = {
@@ -89,7 +112,7 @@ export default function AstroChatModal({ astrologer, onClose }: AstroChatModalPr
 
       setMessages((prev) => [...prev, astroMsg]);
       setIsTyping(false);
-    }, 2000);
+    }, 1100);
   };
 
   return (

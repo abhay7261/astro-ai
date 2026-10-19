@@ -572,7 +572,11 @@ export default function AdminDashboard() {
       dateAdded: "Today",
     };
 
-    setReels([newReel, ...reels]);
+    const updatedReels = [newReel, ...reels];
+    setReels(updatedReels);
+    try {
+      localStorage.setItem("astroai_admin_reels", JSON.stringify(updatedReels));
+    } catch (e) {}
     setNewReelTitle("");
 
     // Sync with backend API
