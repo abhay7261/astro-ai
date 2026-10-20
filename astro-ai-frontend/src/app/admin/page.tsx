@@ -70,7 +70,7 @@ export default function AdminDashboard() {
       id: "1",
       title: "Shanivaar ko Shani Dev ko prasann karne ka 1 achook upay!",
       astrologerName: "Acharya Vidyadhar",
-      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-burning-candle-in-the-dark-42998-large.mp4",
+      videoUrl: "",
       likes: 1240,
       commentsCount: 84,
       tag: "#ShaniUpay",
@@ -80,7 +80,7 @@ export default function AdminDashboard() {
       id: "2",
       title: "Agar Kundli me Chandrama kamzor ho toh kya karein?",
       astrologerName: "Dr. Ananya Mukherjee",
-      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4",
+      videoUrl: "",
       likes: 2480,
       commentsCount: 142,
       tag: "#MoonSign",
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
       id: "3",
       title: "Ghar ki tijori is disha me rakhein, dhan yog banega!",
       astrologerName: "Guruji Devendra",
-      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-meditation-of-a-woman-in-nature-41585-large.mp4",
+      videoUrl: "",
       likes: 3190,
       commentsCount: 215,
       tag: "#VastuTips",
@@ -99,7 +99,7 @@ export default function AdminDashboard() {
   ]);
   const [newReelTitle, setNewReelTitle] = useState("");
   const [newReelAstrologer, setNewReelAstrologer] = useState("Acharya Vidyadhar");
-  const [newReelUrl, setNewReelUrl] = useState("https://assets.mixkit.co/videos/preview/mixkit-astrological-signs-rotating-in-the-sky-42997-large.mp4");
+  const [newReelUrl, setNewReelUrl] = useState("");
   const [newReelTag, setNewReelTag] = useState("#DailyUpay");
   const [reelUploadMode, setReelUploadMode] = useState<"file" | "url">("file");
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
@@ -561,11 +561,40 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!newReelTitle.trim()) return;
 
+    let finalVideoUrl = newReelUrl;
+
+    // Automatic Upload if file is selected
+    if (reelUploadMode === "file" && selectedVideoFile && !uploadSuccess) {
+      setIsUploadingVideo(true);
+      showToast("AI Video Cloudinary par upload ho rahi hai... Kripya 3-5 second intezar karein ⏳");
+      try {
+        const uploadRes = await reelsApi.uploadVideo(selectedVideoFile);
+        setIsUploadingVideo(false);
+        if (uploadRes && uploadRes.success && uploadRes.videoUrl) {
+          finalVideoUrl = uploadRes.videoUrl;
+          setNewReelUrl(uploadRes.videoUrl);
+          setUploadSuccess(true);
+        } else {
+          showToast(uploadRes?.message || "Video upload nahi ho paya, please try again!");
+          return;
+        }
+      } catch (err) {
+        setIsUploadingVideo(false);
+        showToast("Upload network error, please retry!");
+        return;
+      }
+    }
+
+    // Clean any broken mixkit url fallback
+    if (finalVideoUrl.includes("mixkit.co")) {
+      finalVideoUrl = videoPreviewUrl || "";
+    }
+
     const newReel: AdminReel = {
       id: Date.now().toString(),
       title: newReelTitle.trim(),
       astrologerName: newReelAstrologer,
-      videoUrl: newReelUrl,
+      videoUrl: finalVideoUrl,
       likes: 0,
       commentsCount: 0,
       tag: newReelTag.startsWith("#") ? newReelTag : `#${newReelTag}`,
@@ -578,6 +607,9 @@ export default function AdminDashboard() {
       localStorage.setItem("astroai_admin_reels", JSON.stringify(updatedReels));
     } catch (e) {}
     setNewReelTitle("");
+    setSelectedVideoFile(null);
+    setVideoPreviewUrl("");
+    setUploadSuccess(false);
 
     // Sync with backend API
     reelsApi.publish(newReel).catch(() => {});

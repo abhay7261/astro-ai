@@ -80,7 +80,7 @@ export const publishReel = (req, res) => {
   const newReel = ReelModel.create({
     title,
     astrologerName: astrologerName || "Vedic Astrologer",
-    videoUrl: videoUrl || "https://assets.mixkit.co/videos/preview/mixkit-astrological-signs-rotating-in-the-sky-42997-large.mp4",
+    videoUrl: videoUrl || "",
     tag: tag ? (tag.startsWith("#") ? tag : `#${tag}`) : "#DailyUpay",
   });
 

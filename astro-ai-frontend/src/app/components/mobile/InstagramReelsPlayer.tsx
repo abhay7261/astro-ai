@@ -177,11 +177,16 @@ export default function InstagramReelsPlayer() {
     experience: string;
     specialty: string;
   } | null>(null);
+  const [videoLoadError, setVideoLoadError] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number>(0);
   const lastWheelTime = useRef<number>(0);
   const currentReel = allReels[currentIndex] || reelsList[0];
+
+  useEffect(() => {
+    setVideoLoadError(false);
+  }, [currentIndex]);
 
   // Fetch Live Reels from Backend & LocalStorage
   useEffect(() => {
@@ -471,7 +476,7 @@ export default function InstagramReelsPlayer() {
         </div>
 
         {/* Background Visual Layer: Real Video Player OR Celestial Cosmic Canvas */}
-        {currentReel.videoUrl ? (
+        {currentReel.videoUrl && !currentReel.videoUrl.includes("mixkit.co") && !videoLoadError ? (
           <div 
             onClick={handleScreenDoubleTap}
             className="absolute inset-0 bg-black cursor-pointer flex items-center justify-center overflow-hidden"
@@ -483,6 +488,10 @@ export default function InstagramReelsPlayer() {
               loop
               playsInline
               muted={isMuted}
+              onError={() => {
+                console.warn("Reel video failed to load, falling back to cosmic canvas:", currentReel.videoUrl);
+                setVideoLoadError(true);
+              }}
               className="w-full h-full object-cover"
             />
             {/* Subtle Gradient Overlays for Readability */}
