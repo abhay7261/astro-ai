@@ -3,6 +3,7 @@ import {
   getAllReels,
   publishReel,
   deleteReel,
+  deleteSeries,
   likeReel,
   uploadVideoToCloudinary,
   upload,
@@ -13,6 +14,7 @@ const router = express.Router();
 router.get("/", getAllReels);
 router.post("/", publishReel);
 router.post("/upload", upload.single("video"), uploadVideoToCloudinary);
+router.delete("/series/:seriesName", deleteSeries);
 router.delete("/:id", deleteReel);
 router.post("/:id/like", likeReel);
 

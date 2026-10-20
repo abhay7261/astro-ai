@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { 
   Heart, MessageCircle, Share2, ArrowLeft, Volume2, VolumeX, 
   Play, Pause, Sparkles, Send, X, ChevronUp, ChevronDown, 
-  Flame, Music2, CheckCircle2, Bookmark
+  Flame, Music2, CheckCircle2, Bookmark, Film, ChevronRight
 } from "lucide-react";
 import AstroChatModal from "../AstroChatModal";
 import { reelsApi } from "../../services/apiClient";
@@ -30,6 +30,9 @@ export interface ReelItem {
   sharesCount: number;
   tags: string[];
   videoUrl?: string;
+  seriesName?: string;
+  seriesPart?: number;
+  totalParts?: number;
   comments: {
     id: string;
     userName: string;
@@ -58,6 +61,8 @@ const reelsList: ReelItem[] = [
     likes: 1840,
     commentsCount: 142,
     sharesCount: 380,
+    seriesName: "शनि दोष निवारण",
+    seriesPart: 1,
     tags: ["#ShaniUpay", "#VedicAstrology", "#SadeSati", "#AstroAI"],
     comments: [
       { id: "1", userName: "Rahul Sharma", userAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80", text: "Acharya ji, tel kitne baje chadhana sabse shubh hota hai?", timeAgo: "1h ago", likes: 24 },
@@ -82,6 +87,8 @@ const reelsList: ReelItem[] = [
     likes: 3290,
     commentsCount: 268,
     sharesCount: 740,
+    seriesName: "नवग्रह शांति सीरीज",
+    seriesPart: 1,
     tags: ["#MoonSign", "#MentalPeace", "#ShivlingUpay", "#AstroReels"],
     comments: [
       { id: "1", userName: "Sneha Kapur", userAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80", text: "Mam meri rashi Kark hai, kya ye daily kar sakti hoon?", timeAgo: "2h ago", likes: 41 },
@@ -105,6 +112,8 @@ const reelsList: ReelItem[] = [
     likes: 4910,
     commentsCount: 410,
     sharesCount: 1120,
+    seriesName: "वास्तु और धन योग",
+    seriesPart: 1,
     tags: ["#DhanYog", "#VastuTips", "#KuberDishan", "#MoneyAstrology"],
     comments: [
       { id: "1", userName: "Arun Verma", userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80", text: "Pandit ji North East me safe rakh sakte hain kya?", timeAgo: "30m ago", likes: 33 },
@@ -162,7 +171,13 @@ export default function InstagramReelsPlayer() {
   const [allReels, setAllReels] = useState<ReelItem[]>(reelsList);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [showPlayPauseFeedback, setShowPlayPauseFeedback] = useState<"play" | "pause" | null>(null);
+  const [showSeriesDrawer, setShowSeriesDrawer] = useState(false);
+  const [selectedSeriesFilter, setSelectedSeriesFilter] = useState<string | null>(null);
   const [likesState, setLikesState] = useState<Record<string, { liked: boolean; count: number }>>({});
   const [savedReels, setSavedReels] = useState<Record<string, boolean>>({});
   const [showHeartBurst, setShowHeartBurst] = useState(false);
@@ -179,14 +194,113 @@ export default function InstagramReelsPlayer() {
   } | null>(null);
   const [videoLoadError, setVideoLoadError] = useState(false);
 
+  const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number>(0);
   const lastWheelTime = useRef<number>(0);
-  const currentReel = allReels[currentIndex] || reelsList[0];
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
 
+  const filteredReels = selectedSeriesFilter
+    ? allReels.filter((r) => r.seriesName === selectedSeriesFilter)
+    : allReels;
+  const currentReel = filteredReels[currentIndex] || filteredReels[0] || reelsList[0];
+  const allSeriesNames = Array.from(new Set(allReels.map((r) => r.seriesName).filter(Boolean))) as string[];
+
+  // Imperative video playback synchronization
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        const p = videoRef.current.play();
+        if (p !== undefined) {
+          p.catch(() => {
+            if (videoRef.current) {
+              videoRef.current.muted = true;
+              setIsMuted(true);
+              videoRef.current.play().catch(() => {});
+            }
+          });
+        }
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isPlaying, currentIndex]);
+
+  // Reset video timeline when reel or series filter changes
   useEffect(() => {
     setVideoLoadError(false);
-  }, [currentIndex]);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(true);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+          setIsMuted(true);
+          videoRef.current.play().catch(() => {});
+        }
+      });
+    }
+  }, [currentIndex, selectedSeriesFilter]);
+
+  // Cosmic Reels Ambient Audio using Web Audio API
+  useEffect(() => {
+    if (!currentReel.videoUrl || videoLoadError) {
+      if (!isMuted && isPlaying) {
+        try {
+          if (!audioCtxRef.current) {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (AudioContextClass) {
+              audioCtxRef.current = new AudioContextClass();
+            }
+          }
+          const ctx = audioCtxRef.current;
+          if (ctx) {
+            if (ctx.state === "suspended") {
+              ctx.resume();
+            }
+            if (!gainNodeRef.current) {
+              const osc1 = ctx.createOscillator();
+              const osc2 = ctx.createOscillator();
+              const gain = ctx.createGain();
+
+              osc1.type = "sine";
+              osc1.frequency.setValueAtTime(136.1, ctx.currentTime);
+              osc2.type = "triangle";
+              osc2.frequency.setValueAtTime(272.2, ctx.currentTime);
+
+              gain.gain.setValueAtTime(0.04, ctx.currentTime);
+              osc1.connect(gain);
+              osc2.connect(gain);
+              gain.connect(ctx.destination);
+
+              osc1.start();
+              osc2.start();
+              gainNodeRef.current = gain;
+            } else {
+              gainNodeRef.current.gain.setValueAtTime(0.04, ctx.currentTime);
+            }
+          }
+        } catch (e) {}
+      } else {
+        if (gainNodeRef.current && audioCtxRef.current) {
+          gainNodeRef.current.gain.setValueAtTime(0, audioCtxRef.current.currentTime);
+        }
+      }
+    } else {
+      if (gainNodeRef.current && audioCtxRef.current) {
+        gainNodeRef.current.gain.setValueAtTime(0, audioCtxRef.current.currentTime);
+      }
+    }
+
+    return () => {
+      if (gainNodeRef.current && audioCtxRef.current) {
+        gainNodeRef.current.gain.setValueAtTime(0, audioCtxRef.current.currentTime);
+      }
+    };
+  }, [currentReel.videoUrl, videoLoadError, isMuted, isPlaying]);
 
   // Fetch Live Reels from Backend & LocalStorage
   useEffect(() => {
@@ -216,6 +330,8 @@ export default function InstagramReelsPlayer() {
               sharesCount: 35,
               tags: [r.tag || "#AstroReels", "#DailyUpay"],
               videoUrl: r.videoUrl,
+              seriesName: r.seriesName || "",
+              seriesPart: r.seriesPart ? Number(r.seriesPart) : undefined,
               comments: [],
             });
           });
@@ -248,6 +364,8 @@ export default function InstagramReelsPlayer() {
                     sharesCount: 62,
                     tags: [lr.tag || "#UploadedReel", "#AstroAI"],
                     videoUrl: lr.videoUrl,
+                    seriesName: lr.seriesName || "",
+                    seriesPart: lr.seriesPart ? Number(lr.seriesPart) : undefined,
                     comments: [],
                   });
                 }
@@ -292,17 +410,17 @@ export default function InstagramReelsPlayer() {
         handlePrevReel();
       } else if (e.key === " " || e.key === "k") {
         e.preventDefault();
-        setIsPlaying((prev) => !prev);
+        handleScreenDoubleTap();
       } else if (e.key === "m") {
-        setIsMuted((prev) => !prev);
+        handleToggleSound();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex, allReels.length, showCommentsDrawer]);
+  }, [currentIndex, filteredReels.length, showCommentsDrawer]);
 
   const handleNextReel = () => {
-    if (currentIndex < allReels.length - 1) {
+    if (currentIndex < filteredReels.length - 1) {
       setCurrentIndex((prev) => prev + 1);
       setIsPlaying(true);
     }
@@ -335,7 +453,7 @@ export default function InstagramReelsPlayer() {
     }
   };
 
-  // Double tap to like (Instagram gesture)
+  // Double tap to like & Single tap to play/pause
   const lastTapRef = useRef<number>(0);
   const handleScreenDoubleTap = () => {
     const now = Date.now();
@@ -348,10 +466,69 @@ export default function InstagramReelsPlayer() {
         setTimeout(() => setShowHeartBurst(false), 900);
       }
     } else {
-      // Single tap toggle pause/play
-      setIsPlaying((prev) => !prev);
+      // Single tap toggle pause/play & auto-unmute on first interaction
+      if (!hasUserInteracted && isMuted) {
+        setIsMuted(false);
+        setHasUserInteracted(true);
+        if (videoRef.current) {
+          videoRef.current.muted = false;
+          videoRef.current.volume = 1.0;
+        }
+      }
+
+      if (videoRef.current) {
+        if (videoRef.current.paused) {
+          videoRef.current.play().then(() => {
+            setIsPlaying(true);
+            setShowPlayPauseFeedback("play");
+          }).catch(() => {});
+        } else {
+          videoRef.current.pause();
+          setIsPlaying(false);
+          setShowPlayPauseFeedback("pause");
+        }
+      } else {
+        setIsPlaying((prev) => {
+          const next = !prev;
+          setShowPlayPauseFeedback(next ? "play" : "pause");
+          return next;
+        });
+      }
+      setTimeout(() => setShowPlayPauseFeedback(null), 700);
     }
     lastTapRef.current = now;
+  };
+
+  // Sound toggle button
+  const handleToggleSound = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    setHasUserInteracted(true);
+    if (videoRef.current) {
+      videoRef.current.muted = nextMuted;
+      if (!nextMuted) {
+        videoRef.current.volume = 1.0;
+        videoRef.current.play().catch(() => {});
+      }
+    }
+    showToast(nextMuted ? "Sound Muted 🔇" : "Sound Playing 🔊");
+  };
+
+  const formatTime = (secs: number) => {
+    if (!secs || isNaN(secs)) return "0:00";
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (!videoRef.current || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    videoRef.current.currentTime = ratio * duration;
+    setCurrentTime(ratio * duration);
   };
 
   // Share reel
@@ -482,12 +659,18 @@ export default function InstagramReelsPlayer() {
             className="absolute inset-0 bg-black cursor-pointer flex items-center justify-center overflow-hidden"
           >
             <video
+              ref={videoRef}
               key={currentReel.videoUrl}
               src={currentReel.videoUrl}
               autoPlay
               loop
               playsInline
               muted={isMuted}
+              onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+              onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={handleNextReel}
               onError={() => {
                 console.warn("Reel video failed to load, falling back to cosmic canvas:", currentReel.videoUrl);
                 setVideoLoadError(true);
@@ -505,10 +688,23 @@ export default function InstagramReelsPlayer() {
               </div>
             )}
 
+            {/* Play/Pause Animation Feedback Overlay on Tap */}
+            {showPlayPauseFeedback && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 animate-in zoom-in-75 fade-out duration-500">
+                <div className="w-20 h-20 rounded-full bg-black/70 backdrop-blur-md flex items-center justify-center border border-white/30 text-white shadow-2xl">
+                  {showPlayPauseFeedback === "play" ? (
+                    <Play className="w-10 h-10 fill-white translate-x-1" />
+                  ) : (
+                    <Pause className="w-10 h-10 fill-white" />
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Big Pause/Play Indicator overlay when paused */}
-            {!isPlaying && (
+            {!isPlaying && !showPlayPauseFeedback && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 bg-black/40 backdrop-blur-[2px]">
-                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white">
+                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white animate-pulse">
                   <Play className="w-8 h-8 fill-white translate-x-0.5" />
                 </div>
               </div>
@@ -556,10 +752,23 @@ export default function InstagramReelsPlayer() {
               </div>
             )}
 
+            {/* Play/Pause Animation Feedback Overlay on Tap */}
+            {showPlayPauseFeedback && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40 animate-in zoom-in-75 fade-out duration-500">
+                <div className="w-20 h-20 rounded-full bg-black/70 backdrop-blur-md flex items-center justify-center border border-white/30 text-white shadow-2xl">
+                  {showPlayPauseFeedback === "play" ? (
+                    <Play className="w-10 h-10 fill-white translate-x-1" />
+                  ) : (
+                    <Pause className="w-10 h-10 fill-white" />
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Big Pause/Play Indicator overlay when paused */}
-            {!isPlaying && (
+            {!isPlaying && !showPlayPauseFeedback && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 bg-black/30 backdrop-blur-[2px]">
-                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white">
+                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white animate-pulse">
                   <Play className="w-8 h-8 fill-white translate-x-0.5" />
                 </div>
               </div>
@@ -568,6 +777,18 @@ export default function InstagramReelsPlayer() {
             {/* Dark bottom gradient overlay for clear caption readability */}
             <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none" />
           </div>
+        )}
+
+        {/* Floating Tap to Unmute Button */}
+        {isMuted && (
+          <button
+            type="button"
+            onClick={handleToggleSound}
+            className="absolute top-20 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full bg-black/85 hover:bg-black border border-amber-400 text-amber-300 text-xs font-bold shadow-2xl backdrop-blur-md flex items-center gap-2 animate-bounce cursor-pointer active:scale-95 transition-all"
+          >
+            <VolumeX className="w-4 h-4 text-amber-400 animate-pulse" />
+            <span>Tap for Sound (आवाज चालू करें 🔊)</span>
+          </button>
         )}
 
         {/* 1. TOP HEADER OVERLAY (Instagram style) */}
@@ -594,11 +815,7 @@ export default function InstagramReelsPlayer() {
 
           {/* Sound / Mute Toggle */}
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMuted((prev) => !prev);
-              showToast(isMuted ? "Sound Unmuted 🔊" : "Sound Muted 🔇");
-            }}
+            onClick={handleToggleSound}
             className="w-10 h-10 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white active:scale-90 hover:bg-black/60 transition-all backdrop-blur-md"
             title={isMuted ? "Unmute" : "Mute"}
           >
@@ -610,6 +827,61 @@ export default function InstagramReelsPlayer() {
           </button>
         </div>
 
+        {/* Series Pill Badge */}
+        {currentReel.seriesName && (
+          <div className="relative z-20 px-4 -mt-2 mb-1 flex items-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSeriesDrawer(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-terracotta/90 hover:bg-terracotta text-white border border-amber-300/40 text-[11px] font-bold shadow-lg backdrop-blur-md transition-all active:scale-95"
+            >
+              <Film className="w-3.5 h-3.5 text-amber-300" />
+              <span>Series: {currentReel.seriesName} {currentReel.seriesPart ? `(Part ${currentReel.seriesPart})` : ""}</span>
+              <span className="text-amber-200 text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full ml-0.5">▼ Episodes</span>
+            </button>
+          </div>
+        )}
+
+        {/* Series Filter Bar if multiple series exist */}
+        {allSeriesNames.length > 0 && (
+          <div className="relative z-20 px-4 pt-1 pb-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedSeriesFilter(null);
+                setCurrentIndex(0);
+              }}
+              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all ${
+                !selectedSeriesFilter
+                  ? "bg-amber-400 text-black shadow-sm"
+                  : "bg-black/50 text-white/80 border border-white/15 hover:bg-black/70"
+              }`}
+            >
+              All Reels ({allReels.length})
+            </button>
+            {allSeriesNames.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  setSelectedSeriesFilter(s);
+                  setCurrentIndex(0);
+                }}
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all ${
+                  selectedSeriesFilter === s
+                    ? "bg-amber-400 text-black shadow-sm"
+                    : "bg-black/50 text-white/80 border border-white/15 hover:bg-black/70"
+                }`}
+              >
+                📁 {s}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* 2. PROGRESS BAR AT TOP */}
         <div className="relative z-20 px-3 w-full">
           <div className="w-full h-1 bg-white/25 rounded-full overflow-hidden">
@@ -618,7 +890,7 @@ export default function InstagramReelsPlayer() {
                 isPlaying ? "animate-progress" : ""
               }`}
               style={{
-                width: `${((currentIndex + 1) / reelsList.length) * 100}%`,
+                width: `${((currentIndex + 1) / filteredReels.length) * 100}%`,
               }}
             />
           </div>
@@ -742,6 +1014,34 @@ export default function InstagramReelsPlayer() {
         {/* 4. BOTTOM CAPTION & ASTROLOGER DETAILS */}
         <div className="relative z-20 p-4 pb-6 pr-16 bg-gradient-to-t from-black/95 via-black/70 to-transparent">
           
+          {/* Interactive Video Timeline Scrubber */}
+          <div className="w-full mb-3">
+            <div
+              onClick={handleSeek}
+              className="w-full h-1.5 hover:h-2.5 bg-white/25 rounded-full overflow-hidden cursor-pointer transition-all relative flex items-center group/timeline"
+              title="Click to seek"
+            >
+              <div
+                className="h-full bg-gradient-to-r from-amber-400 via-rose-500 to-amber-300 rounded-full relative transition-[width] duration-100"
+                style={{
+                  width: `${
+                    duration > 0
+                      ? (currentTime / duration) * 100
+                      : ((currentIndex + 1) / filteredReels.length) * 100
+                  }%`,
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] text-white/70 font-mono mt-1 px-0.5">
+              <span>{formatTime(currentTime)}</span>
+              <span className="text-[10px] text-amber-300/80 font-sans font-semibold">
+                {currentReel.videoUrl ? (duration > 0 ? formatTime(duration) : "Playing") : "AstroAI Cosmic"}
+              </span>
+              <span>{duration > 0 ? formatTime(duration) : `${currentIndex + 1}/${filteredReels.length}`}</span>
+            </div>
+          </div>
+
           {/* Astrologer Badge & Quick Chat CTA */}
           <div className="flex items-center gap-2 mb-2">
             <span className="font-bold text-sm text-white flex items-center gap-1 drop-shadow-md">
@@ -901,6 +1201,87 @@ export default function InstagramReelsPlayer() {
                 <Send className="w-3.5 h-3.5 translate-x-0.5" />
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Series Episodes Playlist Drawer */}
+      {showSeriesDrawer && currentReel.seriesName && (
+        <div 
+          onClick={() => setShowSeriesDrawer(false)}
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-end sm:items-center justify-center animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-[#18181B] border border-amber-400/30 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl max-h-[75vh] flex flex-col animate-in slide-in-from-bottom-6 duration-300"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📂</span>
+                <div>
+                  <h3 className="font-serif font-bold text-sm text-amber-300">
+                    {currentReel.seriesName}
+                  </h3>
+                  <p className="text-[10px] text-white/60">
+                    Series Playlist • {allReels.filter((r) => r.seriesName === currentReel.seriesName).length} Episodes
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSeriesDrawer(false)}
+                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto space-y-2.5 flex-1 pr-1">
+              {allReels
+                .filter((r) => r.seriesName === currentReel.seriesName)
+                .map((ep, epIdx) => {
+                  const isCurrent = ep.id === currentReel.id;
+                  return (
+                    <button
+                      key={ep.id}
+                      type="button"
+                      onClick={() => {
+                        const targetIdx = filteredReels.findIndex((r) => r.id === ep.id);
+                        if (targetIdx !== -1) {
+                          setCurrentIndex(targetIdx);
+                        } else {
+                          setSelectedSeriesFilter(null);
+                          const idxInAll = allReels.findIndex((r) => r.id === ep.id);
+                          if (idxInAll !== -1) setCurrentIndex(idxInAll);
+                        }
+                        setIsPlaying(true);
+                        setShowSeriesDrawer(false);
+                      }}
+                      className={`w-full text-left p-3 rounded-2xl border transition-all flex items-center gap-3 ${
+                        isCurrent
+                          ? "bg-terracotta/30 border-amber-400 text-white"
+                          : "bg-white/5 border-white/10 hover:bg-white/10 text-white/90"
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                        isCurrent ? "bg-amber-400 text-black font-extrabold" : "bg-white/10 text-white"
+                      }`}>
+                        {ep.seriesPart ? `P${ep.seriesPart}` : `${epIdx + 1}`}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-bold line-clamp-1">{ep.title}</h4>
+                        <p className="text-[10px] text-white/60 line-clamp-1">{ep.astrologerName} • {ep.tags.join(" ")}</p>
+                      </div>
+                      {isCurrent ? (
+                        <span className="text-[10px] font-bold text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full flex-shrink-0">
+                          Playing
+                        </span>
+                      ) : (
+                        <Play className="w-4 h-4 text-white/50 flex-shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+            </div>
           </div>
         </div>
       )}

@@ -71,7 +71,7 @@ export const getAllReels = (req, res) => {
 };
 
 export const publishReel = (req, res) => {
-  const { title, astrologerName, videoUrl, tag } = req.body;
+  const { title, astrologerName, videoUrl, tag, seriesName, seriesPart } = req.body;
 
   if (!title) {
     return res.status(400).json({ success: false, message: "Title is required" });
@@ -82,6 +82,8 @@ export const publishReel = (req, res) => {
     astrologerName: astrologerName || "Vedic Astrologer",
     videoUrl: videoUrl || "",
     tag: tag ? (tag.startsWith("#") ? tag : `#${tag}`) : "#DailyUpay",
+    seriesName: seriesName ? seriesName.trim() : "",
+    seriesPart: seriesPart ? Number(seriesPart) || 1 : null,
   });
 
   res.status(201).json({ success: true, message: "Reel published successfully!", reel: newReel });
@@ -91,6 +93,13 @@ export const deleteReel = (req, res) => {
   const { id } = req.params;
   ReelModel.deleteById(id);
   res.json({ success: true, message: `Reel ${id} deleted successfully.` });
+};
+
+export const deleteSeries = (req, res) => {
+  const { seriesName } = req.params;
+  const decoded = decodeURIComponent(seriesName);
+  ReelModel.deleteBySeries(decoded);
+  res.json({ success: true, message: `Series "${decoded}" deleted successfully.` });
 };
 
 export const likeReel = (req, res) => {

@@ -116,6 +116,11 @@ export const reelsApi = {
       method: "DELETE",
     });
   },
+  deleteSeries: async (seriesName: string) => {
+    return await apiRequest<{ success: boolean; message: string }>(`/reels/series/${encodeURIComponent(seriesName)}`, {
+      method: "DELETE",
+    });
+  },
   like: async (id: string) => {
     return await apiRequest<{ success: boolean; likes: number }>(`/reels/${id}/like`, {
       method: "POST",

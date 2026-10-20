@@ -21,6 +21,8 @@ interface AdminReel {
   commentsCount: number;
   tag: string;
   dateAdded: string;
+  seriesName?: string;
+  seriesPart?: number;
 }
 
 interface AIPersona {
@@ -101,6 +103,10 @@ export default function AdminDashboard() {
   const [newReelAstrologer, setNewReelAstrologer] = useState("Acharya Vidyadhar");
   const [newReelUrl, setNewReelUrl] = useState("");
   const [newReelTag, setNewReelTag] = useState("#DailyUpay");
+  const [newReelSeriesName, setNewReelSeriesName] = useState("");
+  const [newReelSeriesPart, setNewReelSeriesPart] = useState<number | "">(1);
+  const [isSeriesReel, setIsSeriesReel] = useState(false);
+  const [filterSeries, setFilterSeries] = useState<string>("all");
   const [reelUploadMode, setReelUploadMode] = useState<"file" | "url">("file");
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>("");
@@ -275,6 +281,16 @@ export default function AdminDashboard() {
 
       const savedUsers = localStorage.getItem("astroai_users_list");
       if (savedUsers) setUsersList(JSON.parse(savedUsers));
+
+      const savedReelsLocal = localStorage.getItem("astroai_admin_reels");
+      if (savedReelsLocal) {
+        try {
+          const parsed = JSON.parse(savedReelsLocal);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setReels(parsed);
+          }
+        } catch (e) {}
+      }
     } catch (e) {
       console.warn("Storage load error", e);
     }
@@ -309,7 +325,21 @@ export default function AdminDashboard() {
         }
 
         if (liveReels.status === "fulfilled" && liveReels.value) {
-          setReels(liveReels.value);
+          const localStr = localStorage.getItem("astroai_admin_reels");
+          let combined = [...liveReels.value];
+          if (localStr) {
+            try {
+              const localParsed = JSON.parse(localStr);
+              if (Array.isArray(localParsed)) {
+                localParsed.forEach((lr: any) => {
+                  if (!combined.some((cr) => cr.id === lr.id || (lr.videoUrl && cr.videoUrl === lr.videoUrl))) {
+                    combined.unshift(lr);
+                  }
+                });
+              }
+            } catch (e) {}
+          }
+          setReels(combined);
         }
 
         if (liveUsers.status === "fulfilled" && liveUsers.value) {
@@ -598,6 +628,8 @@ export default function AdminDashboard() {
       likes: 0,
       commentsCount: 0,
       tag: newReelTag.startsWith("#") ? newReelTag : `#${newReelTag}`,
+      seriesName: isSeriesReel ? newReelSeriesName.trim() : "",
+      seriesPart: isSeriesReel ? Number(newReelSeriesPart) || 1 : undefined,
       dateAdded: "Today",
     };
 
@@ -607,6 +639,9 @@ export default function AdminDashboard() {
       localStorage.setItem("astroai_admin_reels", JSON.stringify(updatedReels));
     } catch (e) {}
     setNewReelTitle("");
+    setNewReelSeriesName("");
+    setNewReelSeriesPart(1);
+    setIsSeriesReel(false);
     setSelectedVideoFile(null);
     setVideoPreviewUrl("");
     setUploadSuccess(false);
@@ -616,13 +651,32 @@ export default function AdminDashboard() {
     showToast("Nayi Short Video live feed me publish ho gayi hai! 🎬");
   };
 
-  const handleDeleteReel = async (id: string) => {
-    if (confirm("Kya aap sach me is video ko delete karna chahte hain?")) {
-      setReels(reels.filter((r) => r.id !== id));
+  const handleDeleteReel = async (id: string, reelTitle?: string) => {
+    if (confirm(`Kya aap "${reelTitle || 'is video reel'}" ko live feed se delete karna chahte hain? Ye turant hat jayegi.`)) {
+      const updated = reels.filter((r) => r.id !== id);
+      setReels(updated);
+      try {
+        localStorage.setItem("astroai_admin_reels", JSON.stringify(updated));
+      } catch (e) {}
 
       // Call backend API
       reelsApi.delete(id).catch(() => {});
-      showToast("Video live feed se delete ho gayi.");
+      showToast("Reel live feed se successfully delete ho gayi! 🗑️");
+    }
+  };
+
+  const handleDeleteSeries = async (seriesName: string) => {
+    if (confirm(`Kya aap poori Series "${seriesName}" aur uski saari reels ko delete karna chahte hain?`)) {
+      const updated = reels.filter((r) => r.seriesName !== seriesName);
+      setReels(updated);
+      try {
+        localStorage.setItem("astroai_admin_reels", JSON.stringify(updated));
+      } catch (e) {}
+
+      // Call backend API
+      reelsApi.deleteSeries(seriesName).catch(() => {});
+      if (filterSeries === seriesName) setFilterSeries("all");
+      showToast(`Series "${seriesName}" aur uski saari reels delete ho gayi! 📁🗑️`);
     }
   };
 
@@ -1686,17 +1740,78 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {reelUploadMode === "file" && (
-                  <div className="max-w-xs">
-                    <label className="block text-[11px] font-bold text-espresso/70 mb-1">HASHTAG</label>
-                    <input
-                      type="text"
-                      value={newReelTag}
-                      onChange={(e) => setNewReelTag(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
-                    />
+                {/* Series / Playlist Options */}
+                <div className="p-4 rounded-2xl border border-amber-300/80 bg-amber-50/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">📁</span>
+                      <div>
+                        <h4 className="text-xs font-bold text-espresso">Reels Series / Playlist me add karein</h4>
+                        <p className="text-[10px] text-espresso/70">Series banakar users ko Part 1, Part 2 sequence me dikhayein</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isSeriesReel}
+                        onChange={(e) => setIsSeriesReel(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-peach/80 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-terracotta"></div>
+                    </label>
                   </div>
-                )}
+
+                  {isSeriesReel && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-amber-200/60">
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/80 mb-1">
+                          SERIES NAME (e.g. दशहरा विशेष 2026 / नवरात्रि उपाय)
+                        </label>
+                        <div className="space-y-1.5">
+                          <input
+                            type="text"
+                            required={isSeriesReel}
+                            placeholder="e.g. दशहरा के अचूक उपाय"
+                            value={newReelSeriesName}
+                            onChange={(e) => setNewReelSeriesName(e.target.value)}
+                            className="w-full px-3.5 py-2 rounded-xl border border-peach bg-white text-xs font-semibold focus:outline-none"
+                          />
+                          {reels.filter((r) => r.seriesName).length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                              <span className="text-[10px] text-espresso/60 font-medium">Quick Select:</span>
+                              {Array.from(new Set(reels.map((r) => r.seriesName).filter(Boolean))).map((s) => (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  onClick={() => setNewReelSeriesName(s || "")}
+                                  className="px-2 py-0.5 rounded-md bg-white border border-amber-300 text-[10px] font-bold text-espresso/80 hover:bg-amber-100"
+                                >
+                                  {s}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/80 mb-1">
+                          EPISODE / PART NUMBER
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={newReelSeriesPart}
+                          onChange={(e) => setNewReelSeriesPart(Number(e.target.value))}
+                          placeholder="1"
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-white text-xs font-semibold focus:outline-none"
+                        />
+                        <p className="text-[10px] text-espresso/60 mt-1">E.g. Part 1, Part 2, Part 3...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex justify-end pt-2">
                   <button
@@ -1711,44 +1826,108 @@ export default function AdminDashboard() {
             </div>
 
             <div className="bg-white rounded-3xl p-6 border border-peach shadow-md">
-              <h3 className="font-serif font-bold text-base text-espresso pb-4 border-b border-peach mb-4">
-                Manage Published Reels ({reels.length})
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-peach mb-4 gap-2">
+                <div>
+                  <h3 className="font-serif font-bold text-base text-espresso">
+                    Manage Published Reels ({reels.length})
+                  </h3>
+                  <p className="text-[11px] text-espresso/60">Live feed par published reels aur unki series manage karein.</p>
+                </div>
+
+                {/* Series Filter Tabs */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+                  <span className="text-[10px] uppercase font-bold text-espresso/60 mr-1 flex-shrink-0">Filter:</span>
+                  <button
+                    type="button"
+                    onClick={() => setFilterSeries("all")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                      filterSeries === "all"
+                        ? "bg-terracotta text-white shadow-xs"
+                        : "bg-astro-bg text-espresso/70 hover:bg-peach/60"
+                    }`}
+                  >
+                    All ({reels.length})
+                  </button>
+                  {Array.from(new Set(reels.map((r) => r.seriesName).filter(Boolean))).map((s) => {
+                    const count = reels.filter((r) => r.seriesName === s).length;
+                    return (
+                      <div key={s} className="inline-flex items-center gap-1 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setFilterSeries(s || "all")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                            filterSeries === s
+                              ? "bg-terracotta text-white shadow-xs"
+                              : "bg-amber-50 border border-amber-200 text-espresso/80 hover:bg-amber-100"
+                          }`}
+                        >
+                          📂 {s} ({count})
+                        </button>
+                        {filterSeries === s && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSeries(s!)}
+                            className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] font-bold border border-rose-200 transition-colors"
+                            title="Delete this entire series"
+                          >
+                            🗑️ Delete Series
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-peach text-espresso/60 uppercase text-[10px] tracking-wider">
                       <th className="py-3 px-3">Preview</th>
-                      <th className="py-3 px-3">Title & Tag</th>
+                      <th className="py-3 px-3">Title & Series</th>
                       <th className="py-3 px-3">Astrologer</th>
                       <th className="py-3 px-3">Likes</th>
                       <th className="py-3 px-3">Comments</th>
-                      <th className="py-3 px-3 text-right">Delete</th>
+                      <th className="py-3 px-3 text-right">Delete Action (हटाएं)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-peach/50">
-                    {reels.map((reel) => (
+                    {(filterSeries === "all" ? reels : reels.filter((r) => r.seriesName === filterSeries)).map((reel) => (
                       <tr key={reel.id} className="hover:bg-astro-bg/60">
                         <td className="py-3 px-3">
-                          <div className="w-12 h-16 rounded-xl overflow-hidden bg-black border border-peach">
-                            <video src={reel.videoUrl} className="w-full h-full object-cover" muted />
+                          <div className="w-12 h-16 rounded-xl overflow-hidden bg-black border border-peach relative">
+                            {reel.videoUrl ? (
+                              <video src={reel.videoUrl} className="w-full h-full object-cover" muted />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs text-white/50 bg-gradient-to-br from-indigo-950 to-slate-900">
+                                ✨
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="py-3 px-3 max-w-xs">
                           <p className="font-bold text-espresso line-clamp-1">{reel.title}</p>
-                          <span className="text-[10px] text-terracotta font-semibold">{reel.tag}</span>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="text-[10px] text-terracotta font-semibold">{reel.tag}</span>
+                            {reel.seriesName && (
+                              <span className="px-2 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-[9px] font-bold">
+                                📂 {reel.seriesName} {reel.seriesPart ? `• Part ${reel.seriesPart}` : ""}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-3 font-semibold text-espresso">{reel.astrologerName}</td>
                         <td className="py-3 px-3 font-bold text-rose-600">{reel.likes}</td>
                         <td className="py-3 px-3 font-bold text-amber-700">{reel.commentsCount}</td>
                         <td className="py-3 px-3 text-right">
                           <button
-                            onClick={() => handleDeleteReel(reel.id)}
-                            className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 inline-flex items-center justify-center transition-colors active:scale-95 cursor-pointer"
-                            title="Delete Reel"
+                            type="button"
+                            onClick={() => handleDeleteReel(reel.id, reel.title)}
+                            className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 text-rose-600 font-bold text-xs inline-flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                            title="Delete Reel from Live Feed"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete Reel (हटाएं)</span>
                           </button>
                         </td>
                       </tr>
