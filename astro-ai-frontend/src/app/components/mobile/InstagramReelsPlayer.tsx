@@ -177,7 +177,6 @@ export default function InstagramReelsPlayer() {
   const [duration, setDuration] = useState(0);
   const [showPlayPauseFeedback, setShowPlayPauseFeedback] = useState<"play" | "pause" | null>(null);
   const [showSeriesDrawer, setShowSeriesDrawer] = useState(false);
-  const [selectedSeriesFilter, setSelectedSeriesFilter] = useState<string | null>(null);
   const [likesState, setLikesState] = useState<Record<string, { liked: boolean; count: number }>>({});
   const [savedReels, setSavedReels] = useState<Record<string, boolean>>({});
   const [showHeartBurst, setShowHeartBurst] = useState(false);
@@ -201,11 +200,7 @@ export default function InstagramReelsPlayer() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
 
-  const filteredReels = selectedSeriesFilter
-    ? allReels.filter((r) => r.seriesName === selectedSeriesFilter)
-    : allReels;
-  const currentReel = filteredReels[currentIndex] || filteredReels[0] || reelsList[0];
-  const allSeriesNames = Array.from(new Set(allReels.map((r) => r.seriesName).filter(Boolean))) as string[];
+  const currentReel = allReels[currentIndex] || reelsList[0];
 
   // Imperative video playback synchronization
   useEffect(() => {
@@ -227,7 +222,7 @@ export default function InstagramReelsPlayer() {
     }
   }, [isPlaying, currentIndex]);
 
-  // Reset video timeline when reel or series filter changes
+  // Reset video timeline when reel changes
   useEffect(() => {
     setVideoLoadError(false);
     setCurrentTime(0);
@@ -243,7 +238,7 @@ export default function InstagramReelsPlayer() {
         }
       });
     }
-  }, [currentIndex, selectedSeriesFilter]);
+  }, [currentIndex]);
 
   // Cosmic Reels Ambient Audio using Web Audio API
   useEffect(() => {
@@ -417,10 +412,10 @@ export default function InstagramReelsPlayer() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex, filteredReels.length, showCommentsDrawer]);
+  }, [currentIndex, allReels.length, showCommentsDrawer]);
 
   const handleNextReel = () => {
-    if (currentIndex < filteredReels.length - 1) {
+    if (currentIndex < allReels.length - 1) {
       setCurrentIndex((prev) => prev + 1);
       setIsPlaying(true);
     }
@@ -612,46 +607,6 @@ export default function InstagramReelsPlayer() {
         }}
         className="relative w-full h-[100dvh] max-w-md mx-auto sm:max-h-[92dvh] sm:rounded-3xl sm:border sm:border-white/15 overflow-hidden shadow-2xl bg-black flex flex-col justify-between"
       >
-        
-        {/* Floating Quick Reel Scroll Buttons */}
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-40 pointer-events-auto">
-          {currentIndex > 0 ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePrevReel();
-              }}
-              className="w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 text-white flex items-center justify-center active:scale-90 transition-all shadow-xl"
-              title="Previous Reel"
-            >
-              <ChevronUp className="w-5 h-5 text-amber-300" />
-            </button>
-          ) : (
-            <div className="w-8 h-8" />
-          )}
-
-          <div className="px-2 py-0.5 rounded-full bg-black/75 text-[10px] font-mono text-amber-200 text-center backdrop-blur-md border border-white/15 shadow-md">
-            {currentIndex + 1}/{allReels.length}
-          </div>
-
-          {currentIndex < allReels.length - 1 ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNextReel();
-              }}
-              className="w-8 h-8 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 text-white flex items-center justify-center active:scale-90 transition-all shadow-xl"
-              title="Next Reel"
-            >
-              <ChevronDown className="w-5 h-5 text-amber-300" />
-            </button>
-          ) : (
-            <div className="w-8 h-8" />
-          )}
-        </div>
-
         {/* Background Visual Layer: Real Video Player OR Celestial Cosmic Canvas */}
         {currentReel.videoUrl && !currentReel.videoUrl.includes("mixkit.co") && !videoLoadError ? (
           <div 
@@ -791,18 +746,18 @@ export default function InstagramReelsPlayer() {
           </button>
         )}
 
-        {/* 1. TOP HEADER OVERLAY (Instagram style) */}
-        <div className="relative z-20 flex items-center justify-between p-4 pt-5 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+        {/* 1. TOP HEADER OVERLAY (Clean Instagram style) */}
+        <div className="relative z-20 flex items-center justify-between p-4 pt-5 bg-gradient-to-b from-black/80 via-black/30 to-transparent">
           {/* Back Button */}
           <button
             onClick={() => router.push("/home")}
-            className="w-10 h-10 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white active:scale-90 hover:bg-black/60 transition-all backdrop-blur-md"
+            className="w-10 h-10 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white active:scale-90 hover:bg-black/60 transition-all backdrop-blur-md cursor-pointer"
             title="Back to Home"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
 
-          {/* Brand & Live Badge */}
+          {/* Brand & Live Badge + Reel Counter */}
           <div className="flex items-center gap-2">
             <h1 className="font-serif font-bold text-base sm:text-lg tracking-wide text-white drop-shadow-md">
               Astro<span className="text-amber-400">Reels</span>
@@ -811,12 +766,15 @@ export default function InstagramReelsPlayer() {
               <Flame className="w-2.5 h-2.5 fill-white" />
               LIVE
             </span>
+            <span className="px-2 py-0.5 rounded-full bg-black/50 text-amber-200 text-[10px] font-mono border border-white/15">
+              {currentIndex + 1}/{allReels.length}
+            </span>
           </div>
 
           {/* Sound / Mute Toggle */}
           <button
             onClick={handleToggleSound}
-            className="w-10 h-10 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white active:scale-90 hover:bg-black/60 transition-all backdrop-blur-md"
+            className="w-10 h-10 rounded-full bg-black/40 border border-white/20 flex items-center justify-center text-white active:scale-90 hover:bg-black/60 transition-all backdrop-blur-md cursor-pointer"
             title={isMuted ? "Unmute" : "Mute"}
           >
             {isMuted ? (
@@ -825,75 +783,6 @@ export default function InstagramReelsPlayer() {
               <Volume2 className="w-5 h-5 text-amber-400" />
             )}
           </button>
-        </div>
-
-        {/* Series Pill Badge */}
-        {currentReel.seriesName && (
-          <div className="relative z-20 px-4 -mt-2 mb-1 flex items-center">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSeriesDrawer(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-terracotta/90 hover:bg-terracotta text-white border border-amber-300/40 text-[11px] font-bold shadow-lg backdrop-blur-md transition-all active:scale-95"
-            >
-              <Film className="w-3.5 h-3.5 text-amber-300" />
-              <span>Series: {currentReel.seriesName} {currentReel.seriesPart ? `(Part ${currentReel.seriesPart})` : ""}</span>
-              <span className="text-amber-200 text-[10px] bg-black/30 px-1.5 py-0.5 rounded-full ml-0.5">▼ Episodes</span>
-            </button>
-          </div>
-        )}
-
-        {/* Series Filter Bar if multiple series exist */}
-        {allSeriesNames.length > 0 && (
-          <div className="relative z-20 px-4 pt-1 pb-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedSeriesFilter(null);
-                setCurrentIndex(0);
-              }}
-              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all ${
-                !selectedSeriesFilter
-                  ? "bg-amber-400 text-black shadow-sm"
-                  : "bg-black/50 text-white/80 border border-white/15 hover:bg-black/70"
-              }`}
-            >
-              All Reels ({allReels.length})
-            </button>
-            {allSeriesNames.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => {
-                  setSelectedSeriesFilter(s);
-                  setCurrentIndex(0);
-                }}
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all ${
-                  selectedSeriesFilter === s
-                    ? "bg-amber-400 text-black shadow-sm"
-                    : "bg-black/50 text-white/80 border border-white/15 hover:bg-black/70"
-                }`}
-              >
-                📁 {s}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* 2. PROGRESS BAR AT TOP */}
-        <div className="relative z-20 px-3 w-full">
-          <div className="w-full h-1 bg-white/25 rounded-full overflow-hidden">
-            <div 
-              className={`h-full bg-gradient-to-r from-terracotta via-amber-400 to-rose-500 rounded-full ${
-                isPlaying ? "animate-progress" : ""
-              }`}
-              style={{
-                width: `${((currentIndex + 1) / filteredReels.length) * 100}%`,
-              }}
-            />
-          </div>
         </div>
 
         {/* Spacer to push controls to bottom */}
@@ -1012,35 +901,25 @@ export default function InstagramReelsPlayer() {
         </div>
 
         {/* 4. BOTTOM CAPTION & ASTROLOGER DETAILS */}
-        <div className="relative z-20 p-4 pb-6 pr-16 bg-gradient-to-t from-black/95 via-black/70 to-transparent">
+        <div className="relative z-20 p-4 pb-4 pr-16 bg-gradient-to-t from-black/95 via-black/70 to-transparent">
           
-          {/* Interactive Video Timeline Scrubber */}
-          <div className="w-full mb-3">
-            <div
-              onClick={handleSeek}
-              className="w-full h-1.5 hover:h-2.5 bg-white/25 rounded-full overflow-hidden cursor-pointer transition-all relative flex items-center group/timeline"
-              title="Click to seek"
-            >
-              <div
-                className="h-full bg-gradient-to-r from-amber-400 via-rose-500 to-amber-300 rounded-full relative transition-[width] duration-100"
-                style={{
-                  width: `${
-                    duration > 0
-                      ? (currentTime / duration) * 100
-                      : ((currentIndex + 1) / filteredReels.length) * 100
-                  }%`,
+          {/* Series Pill Badge (Only shown if this reel belongs to a Series) */}
+          {currentReel.seriesName && (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSeriesDrawer(true);
                 }}
-              />
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 border border-amber-400/40 text-amber-300 text-xs font-semibold backdrop-blur-md shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                <Film className="w-3.5 h-3.5 text-amber-400" />
+                <span>Series: {currentReel.seriesName} {currentReel.seriesPart ? `• Part ${currentReel.seriesPart}` : ""}</span>
+                <span className="text-[10px] text-amber-200/80 bg-white/10 px-1.5 py-0.5 rounded-full ml-0.5">▼ Episodes</span>
+              </button>
             </div>
-
-            <div className="flex items-center justify-between text-[10px] text-white/70 font-mono mt-1 px-0.5">
-              <span>{formatTime(currentTime)}</span>
-              <span className="text-[10px] text-amber-300/80 font-sans font-semibold">
-                {currentReel.videoUrl ? (duration > 0 ? formatTime(duration) : "Playing") : "AstroAI Cosmic"}
-              </span>
-              <span>{duration > 0 ? formatTime(duration) : `${currentIndex + 1}/${filteredReels.length}`}</span>
-            </div>
-          </div>
+          )}
 
           {/* Astrologer Badge & Quick Chat CTA */}
           <div className="flex items-center gap-2 mb-2">
@@ -1082,15 +961,40 @@ export default function InstagramReelsPlayer() {
             ))}
           </div>
 
-          {/* Audio Ticker Marquee */}
-          <div className="flex items-center gap-2 text-white/70 text-xs">
-            <Music2 className="w-3.5 h-3.5 text-amber-400 animate-pulse flex-shrink-0" />
-            <div className="overflow-hidden whitespace-nowrap max-w-[220px]">
-              <span className="inline-block text-[11px] font-medium tracking-wide">
-                {currentReel.audioName}
-              </span>
+          {/* Audio Ticker Marquee with Video Time */}
+          <div className="flex items-center justify-between text-white/70 text-xs">
+            <div className="flex items-center gap-2">
+              <Music2 className="w-3.5 h-3.5 text-amber-400 animate-pulse flex-shrink-0" />
+              <div className="overflow-hidden whitespace-nowrap max-w-[200px]">
+                <span className="inline-block text-[11px] font-medium tracking-wide">
+                  {currentReel.audioName}
+                </span>
+              </div>
             </div>
+            {duration > 0 && (
+              <span className="text-[10px] font-mono text-white/60">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            )}
           </div>
+        </div>
+
+        {/* 5. SLEEK BOTTOM PROGRESS BAR */}
+        <div
+          onClick={handleSeek}
+          className="relative z-30 w-full h-1 hover:h-2 bg-white/20 cursor-pointer transition-all flex items-center"
+          title="Click to seek"
+        >
+          <div
+            className="h-full bg-gradient-to-r from-amber-400 via-rose-500 to-amber-300 transition-[width] duration-100"
+            style={{
+              width: `${
+                duration > 0
+                  ? (currentTime / duration) * 100
+                  : ((currentIndex + 1) / allReels.length) * 100
+              }%`,
+            }}
+          />
         </div>
 
         {/* 5. DESKTOP NAVIGATION HELPER PILLS (Next / Prev) */}
@@ -1245,13 +1149,9 @@ export default function InstagramReelsPlayer() {
                       key={ep.id}
                       type="button"
                       onClick={() => {
-                        const targetIdx = filteredReels.findIndex((r) => r.id === ep.id);
+                        const targetIdx = allReels.findIndex((r) => r.id === ep.id);
                         if (targetIdx !== -1) {
                           setCurrentIndex(targetIdx);
-                        } else {
-                          setSelectedSeriesFilter(null);
-                          const idxInAll = allReels.findIndex((r) => r.id === ep.id);
-                          if (idxInAll !== -1) setCurrentIndex(idxInAll);
                         }
                         setIsPlaying(true);
                         setShowSeriesDrawer(false);
