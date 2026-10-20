@@ -25,6 +25,45 @@ interface AdminReel {
   seriesPart?: number;
 }
 
+const DEFAULT_ADMIN_REELS: AdminReel[] = [
+  {
+    id: "1",
+    title: "Shanivaar ko Shani Dev ko prasann karne ka 1 achook upay!",
+    astrologerName: "Acharya Vidyadhar",
+    videoUrl: "",
+    likes: 1240,
+    commentsCount: 84,
+    tag: "#ShaniUpay",
+    seriesName: "शनि दोष निवारण",
+    seriesPart: 1,
+    dateAdded: "12 Oct 2026",
+  },
+  {
+    id: "2",
+    title: "Agar Kundli me Chandrama kamzor ho toh kya karein?",
+    astrologerName: "Dr. Ananya Mukherjee",
+    videoUrl: "",
+    likes: 2480,
+    commentsCount: 142,
+    tag: "#MoonSign",
+    seriesName: "नवग्रह शांति सीरीज",
+    seriesPart: 1,
+    dateAdded: "13 Oct 2026",
+  },
+  {
+    id: "3",
+    title: "Ghar ki tijori is disha me rakhein, dhan yog banega!",
+    astrologerName: "Guruji Devendra",
+    videoUrl: "",
+    likes: 3190,
+    commentsCount: 215,
+    tag: "#VastuTips",
+    seriesName: "वास्तु और धन योग",
+    seriesPart: 1,
+    dateAdded: "14 Oct 2026",
+  },
+];
+
 interface AIPersona {
   id: string;
   name: string;
@@ -67,38 +106,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"reels" | "astrologers" | "ai-bots" | "users" | "monetization" | "broadcast">("astrologers");
 
   // ================= 1. REELS STATE =================
-  const [reels, setReels] = useState<AdminReel[]>([
-    {
-      id: "1",
-      title: "Shanivaar ko Shani Dev ko prasann karne ka 1 achook upay!",
-      astrologerName: "Acharya Vidyadhar",
-      videoUrl: "",
-      likes: 1240,
-      commentsCount: 84,
-      tag: "#ShaniUpay",
-      dateAdded: "12 Oct 2026",
-    },
-    {
-      id: "2",
-      title: "Agar Kundli me Chandrama kamzor ho toh kya karein?",
-      astrologerName: "Dr. Ananya Mukherjee",
-      videoUrl: "",
-      likes: 2480,
-      commentsCount: 142,
-      tag: "#MoonSign",
-      dateAdded: "13 Oct 2026",
-    },
-    {
-      id: "3",
-      title: "Ghar ki tijori is disha me rakhein, dhan yog banega!",
-      astrologerName: "Guruji Devendra",
-      videoUrl: "",
-      likes: 3190,
-      commentsCount: 215,
-      tag: "#VastuTips",
-      dateAdded: "14 Oct 2026",
-    },
-  ]);
+  const [reels, setReels] = useState<AdminReel[]>([]);
   const [newReelTitle, setNewReelTitle] = useState("");
   const [newReelAstrologer, setNewReelAstrologer] = useState("Acharya Vidyadhar");
   const [newReelUrl, setNewReelUrl] = useState("");
@@ -282,14 +290,19 @@ export default function AdminDashboard() {
       const savedUsers = localStorage.getItem("astroai_users_list");
       if (savedUsers) setUsersList(JSON.parse(savedUsers));
 
+      const deletedReelsStr = localStorage.getItem("astroai_deleted_reels");
+      const deletedList: string[] = deletedReelsStr ? JSON.parse(deletedReelsStr) : [];
+
       const savedReelsLocal = localStorage.getItem("astroai_admin_reels");
-      if (savedReelsLocal) {
+      if (savedReelsLocal !== null) {
         try {
           const parsed = JSON.parse(savedReelsLocal);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setReels(parsed);
+          if (Array.isArray(parsed)) {
+            setReels(parsed.filter((r) => !deletedList.includes(String(r.id))));
           }
         } catch (e) {}
+      } else {
+        setReels(DEFAULT_ADMIN_REELS.filter((r) => !deletedList.includes(String(r.id))));
       }
     } catch (e) {
       console.warn("Storage load error", e);
@@ -325,21 +338,24 @@ export default function AdminDashboard() {
         }
 
         if (liveReels.status === "fulfilled" && liveReels.value) {
+          const deletedStr = localStorage.getItem("astroai_deleted_reels");
+          const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
           const localStr = localStorage.getItem("astroai_admin_reels");
-          let combined = [...liveReels.value];
-          if (localStr) {
+
+          if (localStr !== null) {
+            // Local storage has explicit admin modifications
             try {
               const localParsed = JSON.parse(localStr);
               if (Array.isArray(localParsed)) {
-                localParsed.forEach((lr: any) => {
-                  if (!combined.some((cr) => cr.id === lr.id || (lr.videoUrl && cr.videoUrl === lr.videoUrl))) {
-                    combined.unshift(lr);
-                  }
-                });
+                const filteredLocal = localParsed.filter((r: any) => !deletedList.includes(String(r.id)));
+                setReels(filteredLocal);
               }
             } catch (e) {}
+          } else {
+            // Fresh load: filter out deleted backend reels
+            const filteredBackend = liveReels.value.filter((r: any) => !deletedList.includes(String(r.id)));
+            setReels(filteredBackend);
           }
-          setReels(combined);
         }
 
         if (liveUsers.status === "fulfilled" && liveUsers.value) {
@@ -637,6 +653,7 @@ export default function AdminDashboard() {
     setReels(updatedReels);
     try {
       localStorage.setItem("astroai_admin_reels", JSON.stringify(updatedReels));
+      window.dispatchEvent(new Event("astroai_reels_updated"));
     } catch (e) {}
     setNewReelTitle("");
     setNewReelSeriesName("");
@@ -653,10 +670,17 @@ export default function AdminDashboard() {
 
   const handleDeleteReel = async (id: string, reelTitle?: string) => {
     if (confirm(`Kya aap "${reelTitle || 'is video reel'}" ko live feed se delete karna chahte hain? Ye turant hat jayegi.`)) {
-      const updated = reels.filter((r) => r.id !== id);
+      const updated = reels.filter((r) => String(r.id) !== String(id));
       setReels(updated);
       try {
         localStorage.setItem("astroai_admin_reels", JSON.stringify(updated));
+        const deletedStr = localStorage.getItem("astroai_deleted_reels");
+        const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
+        if (!deletedList.includes(String(id))) {
+          deletedList.push(String(id));
+          localStorage.setItem("astroai_deleted_reels", JSON.stringify(deletedList));
+        }
+        window.dispatchEvent(new Event("astroai_reels_updated"));
       } catch (e) {}
 
       // Call backend API
@@ -667,10 +691,20 @@ export default function AdminDashboard() {
 
   const handleDeleteSeries = async (seriesName: string) => {
     if (confirm(`Kya aap poori Series "${seriesName}" aur uski saari reels ko delete karna chahte hain?`)) {
+      const toDelete = reels.filter((r) => r.seriesName === seriesName);
       const updated = reels.filter((r) => r.seriesName !== seriesName);
       setReels(updated);
       try {
         localStorage.setItem("astroai_admin_reels", JSON.stringify(updated));
+        const deletedStr = localStorage.getItem("astroai_deleted_reels");
+        const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
+        toDelete.forEach((r) => {
+          if (!deletedList.includes(String(r.id))) {
+            deletedList.push(String(r.id));
+          }
+        });
+        localStorage.setItem("astroai_deleted_reels", JSON.stringify(deletedList));
+        window.dispatchEvent(new Event("astroai_reels_updated"));
       } catch (e) {}
 
       // Call backend API

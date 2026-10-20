@@ -62,7 +62,7 @@ export const ReelModel = {
   },
   deleteById: (id) => {
     const initialLen = reelsStore.length;
-    reelsStore = reelsStore.filter((r) => r.id !== id);
+    reelsStore = reelsStore.filter((r) => r.id !== id && String(r.id) !== String(id));
     const deleted = reelsStore.length !== initialLen;
     if (deleted) {
       saveData("reels.json", reelsStore);

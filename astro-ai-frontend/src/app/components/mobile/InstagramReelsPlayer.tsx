@@ -298,86 +298,106 @@ export default function InstagramReelsPlayer() {
   }, [currentReel.videoUrl, videoLoadError, isMuted, isPlaying]);
 
   // Fetch Live Reels from Backend & LocalStorage
-  useEffect(() => {
-    const fetchReels = async () => {
+  const fetchReels = async () => {
+    try {
+      const deletedStr = localStorage.getItem("astroai_deleted_reels");
+      const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
+
+      // 1. Check local admin uploaded / configured reels
+      let adminReels: any[] = [];
+      let hasAdminConfig = false;
       try {
-        const liveReels = await reelsApi.getAll();
-        const customReels: ReelItem[] = [];
-
-        if (liveReels && Array.isArray(liveReels) && liveReels.length > 0) {
-          liveReels.forEach((r: any, idx: number) => {
-            customReels.push({
-              id: r.id || r._id || `backend-reel-${idx}`,
-              title: r.title || "Vedic Astro Upay & Prediction",
-              description: r.description || "Daily astrological insights and remedies.",
-              astrologerName: r.astrologerName || "Acharya Vidyadhar",
-              astrologerTitle: "Vedic Astrologer",
-              astrologerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
-              astrologerSpecialty: "Vedic Remedies",
-              astrologerExp: "15+ Yrs",
-              themeColor: "#E11D48",
-              bgGradient: "from-[#0F172A] via-[#1E1B4B] to-[#31102A]",
-              symbol: "🪐",
-              mantra: "ॐ नमः शिवाय",
-              audioName: "Original Audio • AstroAI Chants",
-              likes: r.likes || 140,
-              commentsCount: 16,
-              sharesCount: 35,
-              tags: [r.tag || "#AstroReels", "#DailyUpay"],
-              videoUrl: r.videoUrl,
-              seriesName: r.seriesName || "",
-              seriesPart: r.seriesPart ? Number(r.seriesPart) : undefined,
-              comments: [],
-            });
-          });
-        }
-
-        // Also merge any local admin uploaded reels
-        try {
-          const localStr = localStorage.getItem("astroai_admin_reels");
-          if (localStr) {
-            const localReels = JSON.parse(localStr);
-            if (Array.isArray(localReels)) {
-              localReels.forEach((lr: any) => {
-                if (!customReels.some((cr) => cr.id === lr.id || (lr.videoUrl && cr.videoUrl === lr.videoUrl))) {
-                  customReels.unshift({
-                    id: lr.id || `local-reel-${Date.now()}`,
-                    title: lr.title || "AI Astro Video Reel",
-                    description: lr.description || "Daily astrology video",
-                    astrologerName: lr.astrologerName || "AstroAI Creator",
-                    astrologerTitle: "Vedic Astrologer",
-                    astrologerAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
-                    astrologerSpecialty: "Daily Upay",
-                    astrologerExp: "Creator",
-                    themeColor: "#EA580C",
-                    bgGradient: "from-[#7C2D12] via-[#9A3412] to-[#18181B]",
-                    symbol: "🎬",
-                    mantra: "ॐ श्री गणेशाय नमः",
-                    audioName: "Original Audio • Uploaded Reel",
-                    likes: 240,
-                    commentsCount: 19,
-                    sharesCount: 62,
-                    tags: [lr.tag || "#UploadedReel", "#AstroAI"],
-                    videoUrl: lr.videoUrl,
-                    seriesName: lr.seriesName || "",
-                    seriesPart: lr.seriesPart ? Number(lr.seriesPart) : undefined,
-                    comments: [],
-                  });
-                }
-              });
-            }
+        const localStr = localStorage.getItem("astroai_admin_reels");
+        if (localStr !== null) {
+          const parsed = JSON.parse(localStr);
+          if (Array.isArray(parsed)) {
+            adminReels = parsed;
+            hasAdminConfig = true;
           }
-        } catch (e) {}
-
-        if (customReels.length > 0) {
-          setAllReels([...customReels, ...reelsList]);
         }
-      } catch (e) {
-        console.warn("Reels fetch error:", e);
-      }
-    };
+      } catch (e) {}
 
+      // 2. Fetch live reels from backend API
+      let liveReels: any[] = [];
+      try {
+        const res = await reelsApi.getAll();
+        if (Array.isArray(res)) liveReels = res;
+      } catch (e) {}
+
+      // If admin has configured reels in localStorage (e.g. kept 1 reel and deleted the rest),
+      // we strictly respect that list!
+      const combinedList: any[] = hasAdminConfig ? [...adminReels] : [];
+
+      // Add any live backend reels that aren't already included and haven't been deleted
+      liveReels.forEach((br: any) => {
+        const isDeleted = deletedList.includes(String(br.id)) || deletedList.includes(br.id);
+        const alreadyExists = combinedList.some(
+          (cr) => String(cr.id) === String(br.id) || (br.videoUrl && cr.videoUrl === br.videoUrl)
+        );
+        if (!isDeleted && !alreadyExists) {
+          if (!hasAdminConfig) {
+            combinedList.push(br);
+          }
+        }
+      });
+
+      // Filter out any explicitly deleted items
+      const finalRaw = combinedList.filter(
+        (r: any) => !deletedList.includes(String(r.id)) && !deletedList.includes(r.id)
+      );
+
+      if (finalRaw.length > 0) {
+        const mapped: ReelItem[] = finalRaw.map((r: any, idx: number) => ({
+          id: String(r.id || `reel-${idx}`),
+          title: r.title || "Vedic Astro Upay & Prediction",
+          description: r.description || "Daily astrological insights and remedies.",
+          astrologerName: r.astrologerName || "AstroAI Creator",
+          astrologerTitle: r.astrologerTitle || "Vedic Astrologer",
+          astrologerAvatar:
+            r.astrologerAvatar ||
+            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+          astrologerSpecialty: r.astrologerSpecialty || "Daily Upay",
+          astrologerExp: r.astrologerExp || "Creator",
+          themeColor: r.themeColor || "#EA580C",
+          bgGradient: r.bgGradient || "from-[#7C2D12] via-[#9A3412] to-[#18181B]",
+          symbol: r.symbol || "🎬",
+          mantra: r.mantra || "ॐ श्री गणेशाय नमः",
+          audioName: r.audioName || "Original Audio • Uploaded Reel",
+          likes: r.likes || 140,
+          commentsCount: r.commentsCount || 16,
+          sharesCount: r.sharesCount || 35,
+          tags: r.tags || (r.tag ? [r.tag] : ["#AstroReels", "#DailyUpay"]),
+          videoUrl: r.videoUrl,
+          seriesName: r.seriesName || "",
+          seriesPart: r.seriesPart ? Number(r.seriesPart) : undefined,
+          comments: r.comments || [],
+        }));
+
+        // Set strictly ONLY the admin/live reels! NO dummy reels appended!
+        setAllReels(mapped);
+        setCurrentIndex((prev) => (prev >= mapped.length ? 0 : prev));
+      } else if (hasAdminConfig && adminReels.length === 0) {
+        setAllReels([]);
+      } else {
+        // Fresh install / no admin config: filter sample dummy reels by deletedList
+        const filteredDefaults = reelsList.filter(
+          (r) => !deletedList.includes(r.id) && !deletedList.includes(String(r.id))
+        );
+        setAllReels(filteredDefaults);
+      }
+    } catch (e) {
+      console.warn("Reels fetch error:", e);
+    }
+  };
+
+  useEffect(() => {
     fetchReels();
+
+    const handleReelsUpdated = () => {
+      fetchReels();
+    };
+    window.addEventListener("astroai_reels_updated", handleReelsUpdated);
+    return () => window.removeEventListener("astroai_reels_updated", handleReelsUpdated);
   }, []);
 
   // Initialize likes state
@@ -607,6 +627,25 @@ export default function InstagramReelsPlayer() {
         }}
         className="relative w-full h-[100dvh] max-w-md mx-auto sm:max-h-[92dvh] sm:rounded-3xl sm:border sm:border-white/15 overflow-hidden shadow-2xl bg-black flex flex-col justify-between"
       >
+        {/* Empty State when user deleted all reels */}
+        {allReels.length === 0 && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-[#18181B] to-black">
+            <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center mb-4">
+              <Film className="w-8 h-8 text-amber-400" />
+            </div>
+            <h3 className="text-lg font-bold text-amber-200 mb-2">Koi Reel Uplabdh Nahi Hai</h3>
+            <p className="text-xs text-white/60 max-w-xs mb-6">
+              Aapne reels delete kar di hain. Admin panel se nayi short video upload karein.
+            </p>
+            <button
+              onClick={() => router.push("/admin")}
+              className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-terracotta text-white text-xs font-bold shadow-lg active:scale-95 transition-all cursor-pointer"
+            >
+              Admin Panel Kholein
+            </button>
+          </div>
+        )}
+
         {/* Background Visual Layer: Real Video Player OR Celestial Cosmic Canvas */}
         {currentReel.videoUrl && !currentReel.videoUrl.includes("mixkit.co") && !videoLoadError ? (
           <div 
@@ -1012,9 +1051,9 @@ export default function InstagramReelsPlayer() {
           
           <button
             onClick={handleNextReel}
-            disabled={currentIndex === reelsList.length - 1}
+            disabled={currentIndex >= allReels.length - 1}
             className={`w-12 h-12 rounded-full border border-white/20 flex items-center justify-center transition-all ${
-              currentIndex === reelsList.length - 1 ? "opacity-30 cursor-not-allowed bg-black/40" : "bg-black/70 hover:bg-terracotta text-white active:scale-95 shadow-xl"
+              currentIndex >= allReels.length - 1 ? "opacity-30 cursor-not-allowed bg-black/40" : "bg-black/70 hover:bg-terracotta text-white active:scale-95 shadow-xl"
             }`}
             title="Next Reel (Down Arrow)"
           >

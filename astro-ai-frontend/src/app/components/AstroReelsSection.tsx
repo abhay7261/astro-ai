@@ -87,31 +87,82 @@ export default function AstroReelsSection() {
   const [newCommentText, setNewCommentText] = useState("");
   const [shareToast, setShareToast] = useState(false);
 
-  // Fetch live reels from backend API
-  useEffect(() => {
-    const fetchReels = async () => {
+  // Fetch live reels from backend API & Admin LocalStorage
+  const fetchReels = async () => {
+    try {
+      const deletedStr = localStorage.getItem("astroai_deleted_reels");
+      const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
+      const localAdminStr = localStorage.getItem("astroai_admin_reels");
+
+      let itemsToDisplay: any[] = [];
+      let hasAdminConfig = false;
+      if (localAdminStr !== null) {
+        try {
+          const parsed = JSON.parse(localAdminStr);
+          if (Array.isArray(parsed)) {
+            itemsToDisplay = parsed;
+            hasAdminConfig = true;
+          }
+        } catch (e) {}
+      }
+
       try {
         const liveReels = await reelsApi.getAll();
-        if (liveReels && liveReels.length > 0) {
-          // Merge with avatars and comments if backend item doesn't have them
-          const formatted = liveReels.map((lr: any, idx: number) => ({
-            id: lr.id,
-            title: lr.title,
-            astrologerName: lr.astrologerName,
-            astrologerAvatar: lr.astrologerAvatar || reelsData[idx % reelsData.length]?.astrologerAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
-            videoUrl: lr.videoUrl,
-            likes: lr.likes || 1200,
-            commentsCount: lr.commentsCount || 45,
-            tags: lr.tag ? [lr.tag] : ["#VedicTips"],
-            comments: lr.comments || [],
-          }));
-          setReels(formatted);
+        if (liveReels && Array.isArray(liveReels) && liveReels.length > 0) {
+          liveReels.forEach((lr: any) => {
+            const isDel = deletedList.includes(String(lr.id)) || deletedList.includes(lr.id);
+            const exists = itemsToDisplay.some(
+              (it) => String(it.id) === String(lr.id) || (lr.videoUrl && it.videoUrl === lr.videoUrl)
+            );
+            if (!isDel && !exists && !hasAdminConfig) {
+              itemsToDisplay.push(lr);
+            }
+          });
         }
-      } catch (err) {
-        console.warn("Using offline reels fallback", err);
+      } catch (e) {}
+
+      // Filter out deleted items
+      const filtered = itemsToDisplay.filter(
+        (r) => !deletedList.includes(String(r.id)) && !deletedList.includes(r.id)
+      );
+
+      if (filtered.length > 0) {
+        const formatted = filtered.map((lr: any, idx: number) => ({
+          id: String(lr.id || `reel-${idx}`),
+          title: lr.title,
+          astrologerName: lr.astrologerName || "AstroAI Creator",
+          astrologerAvatar:
+            lr.astrologerAvatar ||
+            reelsData[idx % reelsData.length]?.astrologerAvatar ||
+            "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
+          videoUrl: lr.videoUrl,
+          likes: lr.likes || 1200,
+          commentsCount: lr.commentsCount || 45,
+          tags: lr.tag ? [lr.tag] : ["#VedicTips"],
+          comments: lr.comments || [],
+        }));
+        setReels(formatted);
+      } else if (hasAdminConfig && itemsToDisplay.length === 0) {
+        setReels([]);
+      } else {
+        const fallback = reelsData.filter(
+          (r) => !deletedList.includes(String(r.id)) && !deletedList.includes(r.id)
+        );
+        setReels(fallback);
       }
-    };
+    } catch (err) {
+      console.warn("Using offline reels fallback", err);
+    }
+  };
+
+  useEffect(() => {
     fetchReels();
+
+    const handleReelsUpdated = () => {
+      fetchReels();
+    };
+    window.addEventListener("astroai_reels_updated", handleReelsUpdated);
+    return () => window.removeEventListener("astroai_reels_updated", handleReelsUpdated);
   }, []);
 
   // Like Toggle Function
