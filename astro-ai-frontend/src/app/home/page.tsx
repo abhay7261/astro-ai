@@ -63,39 +63,84 @@ export default function HomePage() {
     setTimeout(() => setNameToast(false), 2500);
   };
 
-  // Featured Astrologers with rich stats
-  const featuredAstrologers = [
-    {
-      id: "1",
-      name: "Acharya Vidyadhar",
-      title: "Vedic Astrologer",
-      specialty: "Lagna Dosha & Shanti",
-      experience: "18+ Yrs",
-      rating: "4.9",
-      consults: "14.2k",
-      image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
-    },
-    {
-      id: "2",
-      name: "Dr. Ananya Mukherjee",
-      title: "Love & Marriage Guru",
-      specialty: "Vivah Yog & Matching",
-      experience: "12+ Yrs",
-      rating: "4.95",
-      consults: "18.6k",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80",
-    },
-    {
-      id: "3",
-      name: "Pandit Radheshyam",
-      title: "Career & Wealth Specialist",
-      specialty: "Job & Business Growth",
-      experience: "15+ Yrs",
-      rating: "4.88",
-      consults: "11.9k",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80",
-    },
-  ];
+  // Featured Astrologers State (Synced with Admin & Exclusion Tracking)
+  const [featuredAstrologers, setFeaturedAstrologers] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadFeatured = () => {
+      try {
+        const deletedAstrosStr = localStorage.getItem("astroai_deleted_astros");
+        const deletedAstros: string[] = deletedAstrosStr ? JSON.parse(deletedAstrosStr) : [];
+        const saved = localStorage.getItem("astroai_custom_astrologers");
+
+        if (saved !== null) {
+          // Admin has explicitly configured or deleted astrologers
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            const nonDeleted = parsed
+              .filter((a: any) => !deletedAstros.includes(String(a.id)))
+              .map((a: any) => ({
+                id: a.id,
+                name: a.name,
+                title: a.title,
+                specialty: a.specialty,
+                experience: a.experience,
+                rating: String(a.rating || "4.9"),
+                consults: a.totalConsultations || "10k+",
+                image: a.image,
+              }));
+            setFeaturedAstrologers(nonDeleted.slice(0, 3));
+            return;
+          }
+        }
+
+        // If no custom config in localStorage, filter defaults by deletedAstros
+        const defaults = [
+          {
+            id: "1",
+            name: "Acharya Vidyadhar",
+            title: "Vedic Astrologer",
+            specialty: "Lagna Dosha & Shanti",
+            experience: "18+ Yrs",
+            rating: "4.9",
+            consults: "14.2k",
+            image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
+          },
+          {
+            id: "2",
+            name: "Dr. Ananya Mukherjee",
+            title: "Love & Marriage Guru",
+            specialty: "Vivah Yog & Matching",
+            experience: "12+ Yrs",
+            rating: "4.95",
+            consults: "18.6k",
+            image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80",
+          },
+          {
+            id: "3",
+            name: "Pandit Radheshyam",
+            title: "Career & Wealth Specialist",
+            specialty: "Job & Business Growth",
+            experience: "15+ Yrs",
+            rating: "4.88",
+            consults: "11.9k",
+            image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80",
+          },
+        ];
+
+        const filteredDefaults = defaults.filter(
+          (a) => !deletedAstros.includes(String(a.id))
+        );
+        setFeaturedAstrologers(filteredDefaults.slice(0, 3));
+      } catch (e) {
+        console.warn("Featured astrologers load error", e);
+      }
+    };
+
+    loadFeatured();
+    window.addEventListener("astroai_astrologers_updated", loadFeatured);
+    return () => window.removeEventListener("astroai_astrologers_updated", loadFeatured);
+  }, []);
 
   return (
     <MobileAppLayout>
@@ -287,72 +332,74 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 4. Verified Astrologers Online Section */}
-        <section className="bg-gradient-to-b from-white to-[#FFFDF9] p-4 sm:p-5 rounded-3xl border-2 border-amber-200/90 shadow-sm">
-          <div className="flex items-center justify-between mb-3.5 px-1">
-            <div>
-              <div className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full mb-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Verified & Available Now
+        {/* 4. Verified Astrologers Online Section (Only shown if astrologers are available) */}
+        {featuredAstrologers.length > 0 && (
+          <section className="bg-gradient-to-b from-white to-[#FFFDF9] p-4 sm:p-5 rounded-3xl border-2 border-amber-200/90 shadow-sm">
+            <div className="flex items-center justify-between mb-3.5 px-1">
+              <div>
+                <div className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full mb-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Verified & Available Now
+                </div>
+                <h3 className="font-serif font-bold text-base sm:text-lg text-espresso">
+                  Verified Astrologers Online
+                </h3>
               </div>
-              <h3 className="font-serif font-bold text-base sm:text-lg text-espresso">
-                Verified Astrologers Online
-              </h3>
-            </div>
-            <Link
-              href="/chat"
-              className="text-xs font-bold text-terracotta hover:underline flex items-center gap-0.5 group"
-            >
-              <span>View All</span>
-              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {featuredAstrologers.map((astro) => (
-              <div
-                key={astro.id}
-                className="bg-gradient-to-br from-white to-[#FFF9F3] p-3.5 rounded-2xl border-2 border-peach/80 hover:border-amber-400 flex sm:flex-col items-center justify-between gap-3 shadow-xs hover:shadow-md transition-all text-left sm:text-center"
+              <Link
+                href="/chat"
+                className="text-xs font-bold text-terracotta hover:underline flex items-center gap-0.5 group"
               >
-                <div className="flex sm:flex-col items-center gap-2.5 min-w-0">
-                  <div className="relative w-12 h-12 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-md flex-shrink-0 bg-espresso">
-                    <Image
-                      src={astro.image}
-                      alt={astro.name}
-                      width={48}
-                      height={48}
-                      unoptimized
-                      className="object-cover w-full h-full"
-                    />
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-xs sm:text-sm text-espresso truncate flex items-center sm:justify-center gap-1">
-                      <span>{astro.name}</span>
-                      <CheckCircle2 className="w-3 h-3 text-sky-500 fill-sky-500 inline flex-shrink-0" />
-                    </h4>
-                    <p className="text-[10px] text-terracotta font-bold truncate">{astro.specialty}</p>
-                    <div className="flex items-center sm:justify-center gap-1.5 text-[10px] text-espresso/60 mt-0.5 font-medium">
-                      <span className="flex items-center gap-0.5 text-amber-600 font-bold">
-                        <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
-                        {astro.rating}
-                      </span>
-                      <span>•</span>
-                      <span>{astro.experience}</span>
+                <span>View All</span>
+                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {featuredAstrologers.map((astro) => (
+                <div
+                  key={astro.id}
+                  className="bg-gradient-to-br from-white to-[#FFF9F3] p-3.5 rounded-2xl border-2 border-peach/80 hover:border-amber-400 flex sm:flex-col items-center justify-between gap-3 shadow-xs hover:shadow-md transition-all text-left sm:text-center"
+                >
+                  <div className="flex sm:flex-col items-center gap-2.5 min-w-0">
+                    <div className="relative w-12 h-12 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-md flex-shrink-0 bg-espresso">
+                      <Image
+                        src={astro.image}
+                        alt={astro.name}
+                        width={48}
+                        height={48}
+                        unoptimized
+                        className="object-cover w-full h-full"
+                      />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-xs sm:text-sm text-espresso truncate flex items-center sm:justify-center gap-1">
+                        <span>{astro.name}</span>
+                        <CheckCircle2 className="w-3 h-3 text-sky-500 fill-sky-500 inline flex-shrink-0" />
+                      </h4>
+                      <p className="text-[10px] text-terracotta font-bold truncate">{astro.specialty}</p>
+                      <div className="flex items-center sm:justify-center gap-1.5 text-[10px] text-espresso/60 mt-0.5 font-medium">
+                        <span className="flex items-center gap-0.5 text-amber-600 font-bold">
+                          <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                          {astro.rating}
+                        </span>
+                        <span>•</span>
+                        <span>{astro.experience}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <button
-                  onClick={() => setSelectedAstroForChat(astro)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-terracotta to-amber-600 hover:opacity-95 text-white text-xs font-bold shadow-md shadow-terracotta/20 transition-all active:scale-95 flex-shrink-0 sm:w-full"
-                >
-                  Chat Now
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
+                  <button
+                    onClick={() => setSelectedAstroForChat(astro)}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-terracotta to-amber-600 hover:opacity-95 text-white text-xs font-bold shadow-md shadow-terracotta/20 transition-all active:scale-95 flex-shrink-0 sm:w-full"
+                  >
+                    Chat Now
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 5. Promotional VIP Pass Card (Royal Gold & Terracotta) */}
         <section className="bg-gradient-to-br from-[#2E1A11] via-[#482517] to-[#1C100A] text-white p-5 sm:p-6 rounded-3xl border-2 border-amber-400/70 shadow-2xl relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
