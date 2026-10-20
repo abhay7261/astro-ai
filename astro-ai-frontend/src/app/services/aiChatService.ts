@@ -26,9 +26,15 @@ export interface UserAstrologicalContext {
 
 // CONNECTED TO LIVE NODE.JS BACKEND
 export const USE_REAL_BACKEND = true;
-export const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL 
-  ? `${process.env.NEXT_PUBLIC_API_URL}/ai/chat` 
-  : "https://astro-ai-x5c6.onrender.com/api/v1/ai/chat";
+export const getBackendApiUrl = () => {
+  if (typeof window !== "undefined") {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1") + "/ai/chat";
+    }
+  }
+  return "https://astro-ai-x5c6.onrender.com/api/v1/ai/chat";
+};
+export const BACKEND_API_URL = getBackendApiUrl();
 
 /**
  * Sends a question to the AI Astrologer.
@@ -57,13 +63,14 @@ export async function sendAIAstrologerMessage(
     };
   }
 
-  // If friend's backend is enabled, make real HTTP POST request with 3.5s fast timeout
+  // If live backend is enabled, make real HTTP POST request with 15s timeout
   if (USE_REAL_BACKEND) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const targetUrl = getBackendApiUrl();
 
-      const response = await fetch(BACKEND_API_URL, {
+      const response = await fetch(targetUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,

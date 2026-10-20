@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Star, CheckCircle2, MessageCircle, Globe, Shield, Sparkles } from "lucide-react";
 import AstroChatModal from "./AstroChatModal";
+import { astrologersApi } from "../services/apiClient";
 
 export interface Astrologer {
   id: string;
@@ -122,12 +123,41 @@ export default function AstrologerSection() {
 
   useEffect(() => {
     const loadAstros = async () => {
+      const deletedAstrosStr = localStorage.getItem("astroai_deleted_astros");
+      const deletedAstros: string[] = deletedAstrosStr ? JSON.parse(deletedAstrosStr) : [];
+      const saved = localStorage.getItem("astroai_custom_astrologers");
+
+      // 1. If admin has configured astrologers in localStorage, strictly respect it!
+      if (saved !== null) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            const sanitized = parsed
+              .filter((a: any) => !deletedAstros.includes(String(a.id)))
+              .map((a: any) => ({
+                ...a,
+                languages: a.languages && Array.isArray(a.languages) && a.languages.length > 0 ? a.languages : ["Hindi", "English"],
+                rating: a.rating || 4.9,
+                totalConsultations: a.totalConsultations || "10K+",
+                experience: a.experience || "10+ Yrs Exp",
+                pricePerMin: a.pricePerMin || 20,
+                specialty: a.specialty || "Vedic Astrology",
+                title: a.title || "Vedic Astrologer",
+                isOnline: a.isOnline !== undefined ? a.isOnline : true,
+              }));
+            setAstrologers(sanitized);
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // 2. Otherwise try backend API
       try {
-        const res = await fetch("http://localhost:5000/api/v1/astrologers");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.astrologers && data.astrologers.length > 0) {
-            const sanitized = data.astrologers.map((a: any) => ({
+        const res = await astrologersApi.getAll();
+        if (Array.isArray(res) && res.length > 0) {
+          const sanitized = res
+            .filter((a: any) => !deletedAstros.includes(String(a.id)))
+            .map((a: any) => ({
               ...a,
               languages: a.languages && Array.isArray(a.languages) && a.languages.length > 0 ? a.languages : ["Hindi", "English"],
               rating: a.rating || 4.9,
@@ -138,37 +168,16 @@ export default function AstrologerSection() {
               title: a.title || "Vedic Astrologer",
               isOnline: a.isOnline !== undefined ? a.isOnline : true,
             }));
-            setAstrologers(sanitized);
-            return;
-          }
-        }
-      } catch (err) {
-        // Fallback to localStorage if backend is starting
-      }
-
-      try {
-        const saved = localStorage.getItem("astroai_custom_astrologers");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          const sanitized = parsed.map((a: any) => ({
-            ...a,
-            languages: a.languages && Array.isArray(a.languages) && a.languages.length > 0 ? a.languages : ["Hindi", "English"],
-            rating: a.rating || 4.9,
-            totalConsultations: a.totalConsultations || "10K+",
-            experience: a.experience || "10+ Yrs Exp",
-            pricePerMin: a.pricePerMin || 20,
-            specialty: a.specialty || "Vedic Astrology",
-            title: a.title || "Vedic Astrologer",
-            isOnline: a.isOnline !== undefined ? a.isOnline : true,
-          }));
           setAstrologers(sanitized);
-        } else {
-          setAstrologers(astrologersData);
+          return;
         }
-      } catch (e) {
-        console.warn("Failed to load astrologers", e);
-      }
+      } catch (err) {}
+
+      // 3. Fallback only if no admin changes and no backend
+      const fallback = astrologersData.filter((a) => !deletedAstros.includes(String(a.id)));
+      setAstrologers(fallback);
     };
+
     loadAstros();
     window.addEventListener("astroai_astrologers_updated", loadAstros);
     return () => window.removeEventListener("astroai_astrologers_updated", loadAstros);
@@ -218,8 +227,16 @@ export default function AstrologerSection() {
       </div>
 
       {/* Astrologers Cards List: Spacious Responsive Single-Column / Two-Column Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-        {filteredAstrologers.map((astro) => (
+      {filteredAstrologers.length === 0 ? (
+        <div className="bg-white/80 border-2 border-dashed border-peach rounded-3xl p-8 text-center text-espresso/60 col-span-full">
+          <p className="font-semibold text-sm text-espresso">Koi Astrologer Uplabdh Nahi Hai</p>
+          <p className="text-xs text-espresso/50 mt-1">
+            Admin panel se naye certified Acharyas aur Pandits add karein.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {filteredAstrologers.map((astro) => (
           <div
             key={astro.id}
             className="bg-gradient-to-br from-white via-[#FFFDF9] to-[#FFF9F3] rounded-3xl p-4 border-2 border-amber-200/90 shadow-sm hover:shadow-xl hover:border-amber-400/80 transition-all duration-300 flex flex-col justify-between gap-3 group hover:-translate-y-0.5"
@@ -303,7 +320,8 @@ export default function AstrologerSection() {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Live Chat Modal */}
       {selectedAstroForChat && (

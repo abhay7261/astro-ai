@@ -66,7 +66,7 @@ export const AstrologerModel = {
   },
   deleteById: (id) => {
     const initialLen = astrologersStore.length;
-    astrologersStore = astrologersStore.filter((a) => a.id !== id);
+    astrologersStore = astrologersStore.filter((a) => a.id !== id && String(a.id) !== String(id));
     const deleted = astrologersStore.length !== initialLen;
     if (deleted) {
       saveData("astrologers.json", astrologersStore);

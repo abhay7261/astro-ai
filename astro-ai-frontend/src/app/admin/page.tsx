@@ -277,15 +277,31 @@ export default function AdminDashboard() {
         if (parsed.recurringAutoDebitAmount) setRecurringAutoDebitAmount(parsed.recurringAutoDebitAmount);
       }
 
-      const saved = localStorage.getItem("astroai_custom_astrologers");
-      if (saved) {
-        setAstrologers(JSON.parse(saved));
+      const deletedAstrosStr = localStorage.getItem("astroai_deleted_astros");
+      const deletedAstros: string[] = deletedAstrosStr ? JSON.parse(deletedAstrosStr) : [];
+      const savedAstros = localStorage.getItem("astroai_custom_astrologers");
+      if (savedAstros !== null) {
+        try {
+          const parsed = JSON.parse(savedAstros);
+          if (Array.isArray(parsed)) {
+            setAstrologers(parsed.filter((a: any) => !deletedAstros.includes(String(a.id))));
+          }
+        } catch (e) {}
       } else {
-        setAstrologers(astrologersData);
+        setAstrologers(astrologersData.filter((a) => !deletedAstros.includes(String(a.id))));
       }
 
+      const deletedBotsStr = localStorage.getItem("astroai_deleted_bots");
+      const deletedBots: string[] = deletedBotsStr ? JSON.parse(deletedBotsStr) : [];
       const savedAI = localStorage.getItem("astroai_ai_personas");
-      if (savedAI) setAiPersonas(JSON.parse(savedAI));
+      if (savedAI !== null) {
+        try {
+          const parsed = JSON.parse(savedAI);
+          if (Array.isArray(parsed)) {
+            setAiPersonas(parsed.filter((p: any) => !deletedBots.includes(String(p.id))));
+          }
+        } catch (e) {}
+      }
 
       const savedUsers = localStorage.getItem("astroai_users_list");
       if (savedUsers) setUsersList(JSON.parse(savedUsers));
@@ -320,8 +336,21 @@ export default function AdminDashboard() {
         ]);
 
         if (liveAstros.status === "fulfilled" && liveAstros.value) {
-          setAstrologers(liveAstros.value);
-          localStorage.setItem("astroai_custom_astrologers", JSON.stringify(liveAstros.value));
+          const deletedAstrosStr = localStorage.getItem("astroai_deleted_astros");
+          const deletedAstros: string[] = deletedAstrosStr ? JSON.parse(deletedAstrosStr) : [];
+          const localAstrosStr = localStorage.getItem("astroai_custom_astrologers");
+
+          if (localAstrosStr !== null) {
+            try {
+              const parsed = JSON.parse(localAstrosStr);
+              if (Array.isArray(parsed)) {
+                setAstrologers(parsed.filter((a: any) => !deletedAstros.includes(String(a.id))));
+              }
+            } catch (e) {}
+          } else {
+            const filtered = liveAstros.value.filter((a: any) => !deletedAstros.includes(String(a.id)));
+            setAstrologers(filtered);
+          }
         }
 
         if (liveConfig.status === "fulfilled" && liveConfig.value) {
@@ -333,8 +362,21 @@ export default function AdminDashboard() {
         }
 
         if (liveBots.status === "fulfilled" && liveBots.value) {
-          setAiPersonas(liveBots.value);
-          localStorage.setItem("astroai_ai_personas", JSON.stringify(liveBots.value));
+          const deletedBotsStr = localStorage.getItem("astroai_deleted_bots");
+          const deletedBots: string[] = deletedBotsStr ? JSON.parse(deletedBotsStr) : [];
+          const localBotsStr = localStorage.getItem("astroai_ai_personas");
+
+          if (localBotsStr !== null) {
+            try {
+              const parsed = JSON.parse(localBotsStr);
+              if (Array.isArray(parsed)) {
+                setAiPersonas(parsed.filter((p: any) => !deletedBots.includes(String(p.id))));
+              }
+            } catch (e) {}
+          } else {
+            const filtered = liveBots.value.filter((p: any) => !deletedBots.includes(String(p.id)));
+            setAiPersonas(filtered);
+          }
         }
 
         if (liveReels.status === "fulfilled" && liveReels.value) {
@@ -457,12 +499,21 @@ export default function AdminDashboard() {
     showToast(`₹${trialSetupFee} Setup + ${trialDays}-Day Free Trial + ₹${recurringAutoDebitAmount} Auto-Debit rules updated! 💳`);
   };
 
-  // 1. DELETE Astrologer (Live Backend Sync)
+  // 1. DELETE Astrologer (Live Backend Sync & Exclusion Tracking)
   const handleDeleteAstrologer = async (id: string, name: string) => {
     if (confirm(`Kya aap sach me Astrologer "${name}" ko delete karna chahte hain? Ye website se turant remove ho jayenge.`)) {
-      const updated = astrologers.filter((a) => a.id !== id);
+      const updated = astrologers.filter((a) => String(a.id) !== String(id));
       saveAstrologers(updated);
-      
+
+      try {
+        const deletedAstrosStr = localStorage.getItem("astroai_deleted_astros");
+        const deletedAstros: string[] = deletedAstrosStr ? JSON.parse(deletedAstrosStr) : [];
+        if (!deletedAstros.includes(String(id))) {
+          deletedAstros.push(String(id));
+          localStorage.setItem("astroai_deleted_astros", JSON.stringify(deletedAstros));
+        }
+      } catch (e) {}
+
       // Call backend API
       astrologersApi.delete(id).catch(() => {});
       showToast(`Astrologer "${name}" delete ho gaye.`);
@@ -514,11 +565,20 @@ export default function AdminDashboard() {
     showToast(`Naye Astrologer "${newAstro.name}" add ho gaye hain! 🎉`);
   };
 
-  // 4. DELETE AI Bot (Live Backend Sync)
+  // 4. DELETE AI Bot (Live Backend Sync & Exclusion Tracking)
   const handleDeleteAIPersona = async (id: string, name: string) => {
     if (confirm(`Kya aap sach me AI Astrologer bot "${name}" ko delete karna chahte hain?`)) {
-      const updated = aiPersonas.filter((p) => p.id !== id);
+      const updated = aiPersonas.filter((p) => String(p.id) !== String(id));
       saveAIPersonas(updated);
+
+      try {
+        const deletedBotsStr = localStorage.getItem("astroai_deleted_bots");
+        const deletedBots: string[] = deletedBotsStr ? JSON.parse(deletedBotsStr) : [];
+        if (!deletedBots.includes(String(id))) {
+          deletedBots.push(String(id));
+          localStorage.setItem("astroai_deleted_bots", JSON.stringify(deletedBots));
+        }
+      } catch (e) {}
 
       // Call backend API
       adminApi.deleteAIBot(id).catch(() => {});
@@ -777,6 +837,50 @@ export default function AdminDashboard() {
     }, 1200);
   };
 
+  // 11. WIPE ALL DUMMY DATA (Clean Slate Reset)
+  const handleWipeAllDefaultData = () => {
+    if (
+      confirm(
+        "⚠️ PURA DUMMY DATA CLEAN SLATE RESET:\n\nKya aap sach me saare default dummy Astrologers, default Reels, aur default AI Bots ko ek click me poori tarah delete karna chahte hain?\n\nIske baad platform poora blank ho jayega taaki aap apne according naya data add kar sakein."
+      )
+    ) {
+      // 1. Wipe reels
+      setReels([]);
+      localStorage.setItem("astroai_admin_reels", JSON.stringify([]));
+      const defReelIds = ["1", "2", "3", "reel-1", "reel-2", "reel-3", "reel-4", "reel-5"];
+      const delReels: string[] = JSON.parse(localStorage.getItem("astroai_deleted_reels") || "[]");
+      defReelIds.forEach((id) => {
+        if (!delReels.includes(id)) delReels.push(id);
+      });
+      localStorage.setItem("astroai_deleted_reels", JSON.stringify(delReels));
+      window.dispatchEvent(new Event("astroai_reels_updated"));
+
+      // 2. Wipe astrologers
+      setAstrologers([]);
+      localStorage.setItem("astroai_custom_astrologers", JSON.stringify([]));
+      const defAstroIds = ["1", "2", "3", "4", "5", "6"];
+      const delAstros: string[] = JSON.parse(localStorage.getItem("astroai_deleted_astros") || "[]");
+      defAstroIds.forEach((id) => {
+        if (!delAstros.includes(id)) delAstros.push(id);
+      });
+      localStorage.setItem("astroai_deleted_astros", JSON.stringify(delAstros));
+      window.dispatchEvent(new Event("astroai_astrologers_updated"));
+
+      // 3. Wipe AI Bots
+      setAiPersonas([]);
+      localStorage.setItem("astroai_ai_personas", JSON.stringify([]));
+      const defBotIds = ["ai-1", "ai-2", "ai-3", "ai-4"];
+      const delBots: string[] = JSON.parse(localStorage.getItem("astroai_deleted_bots") || "[]");
+      defBotIds.forEach((id) => {
+        if (!delBots.includes(id)) delBots.push(id);
+      });
+      localStorage.setItem("astroai_deleted_bots", JSON.stringify(delBots));
+      window.dispatchEvent(new Event("astroai_ai_personas_updated"));
+
+      showToast("✨ Sara dummy data successfully saaf ho gaya! Ab aap apna data add kar sakte hain.");
+    }
+  };
+
   // =========================================================================
   // SECURITY LOCK SCREEN IF NOT AUTHENTICATED
   // =========================================================================
@@ -897,6 +1001,16 @@ export default function AdminDashboard() {
             >
               <KeyRound className="w-3.5 h-3.5" />
               <span>Change PIN</span>
+            </button>
+
+            {/* Clean Slate: Wipe All Dummy Data Button */}
+            <button
+              onClick={handleWipeAllDefaultData}
+              className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 px-3 py-1.5 rounded-xl transition-all active:scale-95 cursor-pointer shadow-xs"
+              title="Ek click me saara default dummy data delete karein"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span>Wipe Dummy Data</span>
             </button>
 
             {/* Lock Panel Button */}
@@ -1383,6 +1497,13 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-peach/50">
+                    {astrologers.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-espresso/50 font-medium">
+                          Koi astrologer nahi hai. Upar diye gaye form se naye pandit ji add karein.
+                        </td>
+                      </tr>
+                    )}
                     {astrologers.map((astro) => (
                       <tr key={astro.id} className="hover:bg-astro-bg/60 transition-colors">
                         <td className="py-3 px-3">
@@ -1574,56 +1695,62 @@ export default function AdminDashboard() {
                 <span className="text-xs text-espresso/60">Configured with LLM backend</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {aiPersonas.map((bot) => (
-                  <div
-                    key={bot.id}
-                    className="p-5 rounded-2xl border-2 border-peach/80 bg-gradient-to-br from-white to-astro-bg shadow-xs flex items-start justify-between gap-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-peach/80 flex items-center justify-center text-2xl shadow-inner flex-shrink-0">
-                        {bot.avatar}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-sm text-espresso">{bot.name}</h4>
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
-                            bot.isActive ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-500"
-                          }`}>
-                            {bot.isActive ? "Active" : "Paused"}
+              {aiPersonas.length === 0 ? (
+                <div className="p-8 text-center text-espresso/50 font-medium border-2 border-dashed border-peach rounded-2xl">
+                  Koi AI Bot configured nahi hai. Upar diye gaye form se naya bot create karein.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {aiPersonas.map((bot) => (
+                    <div
+                      key={bot.id}
+                      className="p-5 rounded-2xl border-2 border-peach/80 bg-gradient-to-br from-white to-astro-bg shadow-xs flex items-start justify-between gap-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-peach/80 flex items-center justify-center text-2xl shadow-inner flex-shrink-0">
+                          {bot.avatar}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-sm text-espresso">{bot.name}</h4>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                              bot.isActive ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-500"
+                            }`}>
+                              {bot.isActive ? "Active" : "Paused"}
+                            </span>
+                          </div>
+                          <p className="text-xs text-terracotta font-semibold mt-0.5">{bot.role}</p>
+                          <p className="text-[11px] text-espresso/60 mt-1">Tone: {bot.tone}</p>
+                          <span className="inline-block mt-2 text-[10px] bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded-md border border-amber-200">
+                            {bot.queriesAnswered.toLocaleString()} queries resolved
                           </span>
                         </div>
-                        <p className="text-xs text-terracotta font-semibold mt-0.5">{bot.role}</p>
-                        <p className="text-[11px] text-espresso/60 mt-1">Tone: {bot.tone}</p>
-                        <span className="inline-block mt-2 text-[10px] bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded-md border border-amber-200">
-                          {bot.queriesAnswered.toLocaleString()} queries resolved
-                        </span>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleToggleAIPersona(bot.id)}
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all ${
+                            bot.isActive
+                              ? "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100"
+                              : "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                          }`}
+                        >
+                          {bot.isActive ? "Pause Bot" : "Activate"}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteAIPersona(bot.id, bot.name)}
+                          className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 inline-flex items-center justify-center transition-colors active:scale-95 cursor-pointer"
+                          title="Delete AI Bot Persona"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => handleToggleAIPersona(bot.id)}
-                        className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all ${
-                          bot.isActive
-                            ? "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100"
-                            : "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
-                        }`}
-                      >
-                        {bot.isActive ? "Pause Bot" : "Activate"}
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteAIPersona(bot.id, bot.name)}
-                        className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 inline-flex items-center justify-center transition-colors active:scale-95 cursor-pointer"
-                        title="Delete AI Bot Persona"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1926,6 +2053,13 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-peach/50">
+                    {reels.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-espresso/50 font-medium">
+                          Koi reel published nahi hai. Upar diye gaye form se nayi short video upload karein.
+                        </td>
+                      </tr>
+                    )}
                     {(filterSeries === "all" ? reels : reels.filter((r) => r.seriesName === filterSeries)).map((reel) => (
                       <tr key={reel.id} className="hover:bg-astro-bg/60">
                         <td className="py-3 px-3">

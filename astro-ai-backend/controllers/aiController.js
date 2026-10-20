@@ -54,66 +54,87 @@ const getVedicAnalysisFallback = (query) => {
   };
 };
 
-// Call Google Gemini Live AI with structured Vedic Astrologer Prompt
+// Call Google Gemini Live AI with structured Vedic Astrologer Prompt and Auto-Model Fallback
 async function askGoogleGemini(query, context = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
+
+  const candidateModels = [
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-3.8-flash"
+  ];
 
   const prompt = `You are AstroAI's master Vedic Astrologer (ऋषि/विद्वान वैदिक ज्योतिषी).
 The user is asking an astrology question: "${query}".
 User astrological context: ${JSON.stringify(context || {})}.
 
-Analyze the question according to Vedic Astrology (Parashari system, Rashis, Bhavas, Grahas, Nakshatras).
-Write a warm, compassionate, culturally authentic answer in Hindi / Hinglish.
+Analyze the question according to Vedic Astrology (Parashari system, Prashna Shastra, Rashis, Bhavas, Grahas, Nakshatras).
+Write a warm, compassionate, culturally authentic, deeply personalized answer in Hindi / Hinglish.
 
-You MUST respond strictly in the following JSON format:
+You MUST respond strictly in valid JSON format:
 {
-  "reply": "Clear, deep astrological prediction and guidance in Hindi/Hinglish",
+  "reply": "Clear, deep astrological prediction and guidance in Hindi/Hinglish (2-4 thoughtful sentences)",
   "remedy": "Practical Vedic remedy / Upay (fasting, puja, colors, donation)",
   "mantra": "Sanskrit Vedic mantra in Devanagari script with short benefit"
 }`;
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+  for (const model of candidateModels) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+          }),
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.warn(`⚠️ [Gemini AI] Model ${model} returned status:`, response.status);
+        continue;
       }
-    );
 
-    clearTimeout(timeoutId);
+      const data = await response.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) continue;
 
-    if (!response.ok) {
-      console.warn("⚠️ [Gemini AI] API status:", response.status);
-      return null;
+      // Clean JSON markdown code fences if returned by model
+      const cleanedText = rawText.replace(/```json\s*/gi, "").replace(/```\s*$/gi, "").trim();
+      let parsed;
+      try {
+        parsed = JSON.parse(cleanedText);
+      } catch (parseErr) {
+        // Fallback extract if JSON was slightly malformed
+        const match = cleanedText.match(/\{[\s\S]*\}/);
+        if (match) {
+          parsed = JSON.parse(match[0]);
+        } else {
+          parsed = { reply: cleanedText, remedy: "सूर्य देव को अर्घ्य दें।", mantra: "ॐ नमः शिवाय" };
+        }
+      }
+
+      return {
+        reply: parsed.reply || cleanedText,
+        remedy: parsed.remedy || "Subah suryoday ke samay Surya Dev ko arghya dein aur mantra jap karein.",
+        mantra: parsed.mantra || "ॐ नमः शिवाय",
+        source: `Google Gemini AI (${model})`,
+      };
+    } catch (err) {
+      console.warn(`⚠️ [Gemini AI] Error with model ${model}:`, err.message);
     }
-
-    const data = await response.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawText) return null;
-
-    // Clean JSON markdown code fences if returned by model
-    const cleanedText = rawText.replace(/```json\s*/gi, "").replace(/```\s*$/gi, "").trim();
-    const parsed = JSON.parse(cleanedText);
-
-    return {
-      reply: parsed.reply,
-      remedy: parsed.remedy,
-      mantra: parsed.mantra,
-      source: "Google Gemini AI (gemini-3.8-flash)",
-    };
-  } catch (err) {
-    console.warn("⚠️ [Gemini AI] Error during generation, falling back:", err.message);
-    return null;
   }
+
+  return null;
 }
 
 export const chatWithAIAstrologer = async (req, res) => {

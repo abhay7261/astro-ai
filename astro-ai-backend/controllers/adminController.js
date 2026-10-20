@@ -163,7 +163,7 @@ export const addAIPersona = (req, res) => {
 
 export const deleteAIPersona = (req, res) => {
   const { id } = req.params;
-  aiPersonasStore = aiPersonasStore.filter((p) => p.id !== id);
+  aiPersonasStore = aiPersonasStore.filter((p) => String(p.id) !== String(id));
   res.json({ success: true, message: `AI Bot ${id} deleted successfully.` });
 };
 
