@@ -376,14 +376,8 @@ export default function InstagramReelsPlayer() {
         // Set strictly ONLY the admin/live reels! NO dummy reels appended!
         setAllReels(mapped);
         setCurrentIndex((prev) => (prev >= mapped.length ? 0 : prev));
-      } else if (hasAdminConfig && adminReels.length === 0) {
-        setAllReels([]);
       } else {
-        // Fresh install / no admin config: filter sample dummy reels by deletedList
-        const filteredDefaults = reelsList.filter(
-          (r) => !deletedList.includes(r.id) && !deletedList.includes(String(r.id))
-        );
-        setAllReels(filteredDefaults);
+        setAllReels([]);
       }
     } catch (e) {
       console.warn("Reels fetch error:", e);

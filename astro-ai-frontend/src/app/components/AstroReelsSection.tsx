@@ -81,7 +81,7 @@ const reelsData: Reel[] = [
 ];
 
 export default function AstroReelsSection() {
-  const [reels, setReels] = useState<Reel[]>(reelsData);
+  const [reels, setReels] = useState<Reel[]>([]);
   const [likedReels, setLikedReels] = useState<Record<string, boolean>>({});
   const [activeReelForComments, setActiveReelForComments] = useState<Reel | null>(null);
   const [newCommentText, setNewCommentText] = useState("");
@@ -142,13 +142,8 @@ export default function AstroReelsSection() {
           comments: lr.comments || [],
         }));
         setReels(formatted);
-      } else if (hasAdminConfig && itemsToDisplay.length === 0) {
-        setReels([]);
       } else {
-        const fallback = reelsData.filter(
-          (r) => !deletedList.includes(String(r.id)) && !deletedList.includes(r.id)
-        );
-        setReels(fallback);
+        setReels([]);
       }
     } catch (err) {
       console.warn("Using offline reels fallback", err);
@@ -242,8 +237,16 @@ export default function AstroReelsSection() {
         </div>
 
         {/* Reels Horizontal Grid / Carousel */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {reels.map((reel) => {
+        {reels.length === 0 ? (
+          <div className="bg-white/80 border-2 border-dashed border-peach rounded-3xl p-10 text-center text-espresso/60 w-full">
+            <p className="font-semibold text-base text-espresso">Koi Reel Uplabdh Nahi Hai</p>
+            <p className="text-xs text-espresso/50 mt-1">
+              Admin panel se nayi Astro Short Video reels upload karein.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {reels.map((reel) => {
             const isLiked = !!likedReels[reel.id];
 
             return (
@@ -350,6 +353,7 @@ export default function AstroReelsSection() {
             );
           })}
         </div>
+        )}
 
         {/* Share Toast Notification */}
         {shareToast && (

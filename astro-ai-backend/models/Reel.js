@@ -1,44 +1,7 @@
 // Astro Reels Store & Persistent Disk Model
 import { loadData, saveData } from "../config/fileDb.js";
 
-const DEFAULT_REELS = [
-  {
-    id: "1",
-    title: "Shanivaar ko Shani Dev ko prasann karne ka 1 achook upay!",
-    astrologerName: "Acharya Vidyadhar",
-    videoUrl: "",
-    likes: 1240,
-    commentsCount: 84,
-    tag: "#ShaniUpay",
-    seriesName: "शनि दोष निवारण",
-    seriesPart: 1,
-    dateAdded: "12 Oct 2026",
-  },
-  {
-    id: "2",
-    title: "Agar Kundli me Chandrama kamzor ho toh kya karein?",
-    astrologerName: "Dr. Ananya Mukherjee",
-    videoUrl: "",
-    likes: 2480,
-    commentsCount: 142,
-    tag: "#MoonSign",
-    seriesName: "नवग्रह शांति सीरीज",
-    seriesPart: 1,
-    dateAdded: "13 Oct 2026",
-  },
-  {
-    id: "3",
-    title: "Ghar ki tijori is disha me rakhein, dhan yog banega!",
-    astrologerName: "Guruji Devendra",
-    videoUrl: "",
-    likes: 3190,
-    commentsCount: 215,
-    tag: "#VastuTips",
-    seriesName: "वास्तु और धन योग",
-    seriesPart: 1,
-    dateAdded: "14 Oct 2026",
-  },
-];
+const DEFAULT_REELS = [];
 
 export let reelsStore = loadData("reels.json", DEFAULT_REELS);
 
@@ -68,6 +31,11 @@ export const ReelModel = {
       saveData("reels.json", reelsStore);
     }
     return deleted;
+  },
+  clearAll: () => {
+    reelsStore = [];
+    saveData("reels.json", reelsStore);
+    return true;
   },
   deleteBySeries: (seriesName) => {
     const initialLen = reelsStore.length;

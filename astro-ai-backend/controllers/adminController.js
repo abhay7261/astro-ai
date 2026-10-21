@@ -1,5 +1,7 @@
 // Master Admin Controller & Persistent MongoDB Atlas Security Configuration
 import mongoose from "mongoose";
+import { AstrologerModel } from "../models/Astrologer.js";
+import { ReelModel } from "../models/Reel.js";
 
 let currentPin = process.env.ADMIN_MASTER_PIN || "7261";
 
@@ -174,4 +176,24 @@ export const broadcastNotification = (req, res) => {
     message: "Notification broadcasted successfully to all active device tokens!",
     broadcast: { title, body, sentAt: new Date().toISOString() },
   });
+};
+
+export const wipeAllData = async (req, res) => {
+  try {
+    AstrologerModel.clearAll();
+    ReelModel.clearAll();
+    aiPersonasStore = [];
+
+    if (mongoose.connection.readyState === 1 && mongoose.connection.db) {
+      await mongoose.connection.db.collection("astrologers").deleteMany({});
+      await mongoose.connection.db.collection("reels").deleteMany({});
+    }
+
+    res.json({
+      success: true,
+      message: "Saara demo/dummy data permanently wipe kar diya gaya hai!",
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };

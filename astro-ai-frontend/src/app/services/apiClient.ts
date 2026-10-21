@@ -194,6 +194,11 @@ export const adminApi = {
       body: JSON.stringify({ title, body }),
     });
   },
+  wipeData: async () => {
+    return await apiRequest<{ success: boolean; message: string }>("/admin/wipe-data", {
+      method: "POST",
+    });
+  },
   login: async (pin: string) => {
     return await apiRequest<{ success: boolean; token: string; message: string }>("/admin/login", {
       method: "POST",

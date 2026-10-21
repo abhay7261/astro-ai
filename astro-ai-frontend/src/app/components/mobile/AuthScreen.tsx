@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { 
   Mail, Lock, Eye, EyeOff, User, ArrowRight, ShieldCheck, 
@@ -33,9 +33,22 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const [customGoogleEmail, setCustomGoogleEmail] = useState("");
   const [customGoogleName, setCustomGoogleName] = useState("");
   const [showCustomGoogleInput, setShowCustomGoogleInput] = useState(false);
+  const [savedGoogleUser, setSavedGoogleUser] = useState<{ email: string; name: string } | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("astroai_saved_google_user");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.email) {
+          setSavedGoogleUser(parsed);
+        }
+      }
+    } catch (e) {}
+  }, []);
 
   // Email Validation regex
   const isValidEmail = (val: string) => {
@@ -117,6 +130,12 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
 
     const cleanEmail = accountEmail.trim().toLowerCase();
     const cleanName = accountName.trim() || cleanEmail.split("@")[0].replace(".", " ");
+
+    try {
+      localStorage.setItem("astroai_saved_google_user", JSON.stringify({ email: cleanEmail, name: cleanName }));
+      setSavedGoogleUser({ email: cleanEmail, name: cleanName });
+    } catch (e) {}
+
     const instantUser: AuthUser = {
       id: `u-${Date.now()}`,
       name: cleanName,
@@ -463,28 +482,28 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                 <p className="text-xs font-semibold text-zinc-700">Connecting Google account...</p>
                 <p className="text-[11px] text-zinc-400 mt-1">Syncing profile with AstroAI</p>
               </div>
-            ) : !showCustomGoogleInput ? (
+            ) : savedGoogleUser && !showCustomGoogleInput ? (
               <div className="space-y-2">
-                {/* 1-Click Primary Google Account (Abhay Saini) */}
+                {/* 1-Click Saved Google Account on THIS Specific Device */}
                 <button
                   type="button"
-                  onClick={() => handleSelectGoogleAccount("abhaysaini63958@gmail.com", "Abhay Saini")}
+                  onClick={() => handleSelectGoogleAccount(savedGoogleUser.email, savedGoogleUser.name)}
                   className="w-full p-3 rounded-2xl border border-zinc-200 hover:border-terracotta hover:bg-orange-50/40 flex items-center gap-3.5 text-left transition-all group"
                 >
                   <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shadow-sm group-hover:scale-105 transition-transform flex-shrink-0">
-                    A
+                    {(savedGoogleUser.name || savedGoogleUser.email || "G").charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-bold text-zinc-900 truncate flex items-center gap-1.5">
-                      <span>Abhay Saini</span>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">Active</span>
+                      <span>{savedGoogleUser.name || "Google User"}</span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">Saved</span>
                     </div>
-                    <div className="text-[11px] text-zinc-500 truncate">abhaysaini63958@gmail.com</div>
+                    <div className="text-[11px] text-zinc-500 truncate">{savedGoogleUser.email}</div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-terracotta group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                 </button>
 
-                {/* Option to use another Google account */}
+                {/* Option to switch to another Google account */}
                 <button
                   type="button"
                   onClick={() => setShowCustomGoogleInput(true)}
@@ -500,7 +519,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                 </button>
               </div>
             ) : (
-              /* Custom Gmail input view */
+              /* Google Sign-in / Custom Gmail input view */
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -521,7 +540,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                     type="text"
                     value={customGoogleName}
                     onChange={(e) => setCustomGoogleName(e.target.value)}
-                    placeholder="e.g. Abhay Saini"
+                    placeholder="Enter your name"
                     className="w-full h-10 px-3 rounded-xl border border-zinc-200 text-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-terracotta/30"
                   />
                 </div>
@@ -541,18 +560,21 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                 </div>
 
                 <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomGoogleInput(false)}
-                    className="flex-1 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold transition-colors"
-                  >
-                    Back
-                  </button>
+                  {savedGoogleUser && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomGoogleInput(false)}
+                      className="py-2 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold transition-colors"
+                    >
+                      Back
+                    </button>
+                  )}
                   <button
                     type="submit"
-                    className="flex-1 py-2 rounded-xl bg-terracotta hover:bg-terracotta-hover text-white text-xs font-semibold shadow-md transition-all"
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-terracotta to-amber-600 hover:opacity-95 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2"
                   >
-                    Sign In
+                    <span>Continue with Google</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </form>

@@ -25,44 +25,7 @@ interface AdminReel {
   seriesPart?: number;
 }
 
-const DEFAULT_ADMIN_REELS: AdminReel[] = [
-  {
-    id: "1",
-    title: "Shanivaar ko Shani Dev ko prasann karne ka 1 achook upay!",
-    astrologerName: "Acharya Vidyadhar",
-    videoUrl: "",
-    likes: 1240,
-    commentsCount: 84,
-    tag: "#ShaniUpay",
-    seriesName: "शनि दोष निवारण",
-    seriesPart: 1,
-    dateAdded: "12 Oct 2026",
-  },
-  {
-    id: "2",
-    title: "Agar Kundli me Chandrama kamzor ho toh kya karein?",
-    astrologerName: "Dr. Ananya Mukherjee",
-    videoUrl: "",
-    likes: 2480,
-    commentsCount: 142,
-    tag: "#MoonSign",
-    seriesName: "नवग्रह शांति सीरीज",
-    seriesPart: 1,
-    dateAdded: "13 Oct 2026",
-  },
-  {
-    id: "3",
-    title: "Ghar ki tijori is disha me rakhein, dhan yog banega!",
-    astrologerName: "Guruji Devendra",
-    videoUrl: "",
-    likes: 3190,
-    commentsCount: 215,
-    tag: "#VastuTips",
-    seriesName: "वास्तु और धन योग",
-    seriesPart: 1,
-    dateAdded: "14 Oct 2026",
-  },
-];
+const DEFAULT_ADMIN_REELS: AdminReel[] = [];
 
 interface AIPersona {
   id: string;
@@ -108,7 +71,7 @@ export default function AdminDashboard() {
   // ================= 1. REELS STATE =================
   const [reels, setReels] = useState<AdminReel[]>([]);
   const [newReelTitle, setNewReelTitle] = useState("");
-  const [newReelAstrologer, setNewReelAstrologer] = useState("Acharya Vidyadhar");
+  const [newReelAstrologer, setNewReelAstrologer] = useState("Vedic Astrologer");
   const [newReelUrl, setNewReelUrl] = useState("");
   const [newReelTag, setNewReelTag] = useState("#DailyUpay");
   const [newReelSeriesName, setNewReelSeriesName] = useState("");
@@ -876,6 +839,9 @@ export default function AdminDashboard() {
       });
       localStorage.setItem("astroai_deleted_bots", JSON.stringify(delBots));
       window.dispatchEvent(new Event("astroai_ai_personas_updated"));
+
+      // 4. Wipe permanently on backend database (Render / MongoDB Atlas)
+      adminApi.wipeData().catch(() => {});
 
       showToast("✨ Sara dummy data successfully saaf ho gaya! Ab aap apna data add kar sakte hain.");
     }

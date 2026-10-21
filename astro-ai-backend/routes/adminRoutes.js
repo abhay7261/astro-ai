@@ -7,6 +7,7 @@ import {
   addAIPersona,
   deleteAIPersona,
   broadcastNotification,
+  wipeAllData,
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -18,5 +19,6 @@ router.get("/ai-bots", getAIPersonas);
 router.post("/ai-bots", addAIPersona);
 router.delete("/ai-bots/:id", deleteAIPersona);
 router.post("/broadcast", broadcastNotification);
+router.post("/wipe-data", wipeAllData);
 
 export default router;

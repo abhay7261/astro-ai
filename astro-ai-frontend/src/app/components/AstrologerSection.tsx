@@ -119,7 +119,7 @@ const categories = [
 export default function AstrologerSection() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedAstroForChat, setSelectedAstroForChat] = useState<Astrologer | null>(null);
-  const [astrologers, setAstrologers] = useState<Astrologer[]>(astrologersData);
+  const [astrologers, setAstrologers] = useState<Astrologer[]>([]);
 
   useEffect(() => {
     const loadAstros = async () => {
@@ -173,9 +173,8 @@ export default function AstrologerSection() {
         }
       } catch (err) {}
 
-      // 3. Fallback only if no admin changes and no backend
-      const fallback = astrologersData.filter((a) => !deletedAstros.includes(String(a.id)));
-      setAstrologers(fallback);
+      // 3. Keep clean empty list if none configured by admin
+      setAstrologers([]);
     };
 
     loadAstros();

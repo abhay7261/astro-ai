@@ -17,8 +17,17 @@ export async function seedAtlasIfEmpty() {
       }
     }
 
-    // 2. Seed Astrologers
+    // 2. Clean up legacy dummy astros and seed only if real data exists
     const astrosCol = db.collection("astrologers");
+    await astrosCol.deleteMany({
+      $or: [
+        { astrologerId: { $in: ["1", "2", "3"] } },
+        { id: { $in: ["1", "2", "3"] } },
+        { name: "Acharya Vidyadhar Shastri" },
+        { name: "Dr. Ananya Mukherjee" },
+        { name: "Pandit Radheshyam Joshi" },
+      ],
+    });
     const astroCount = await astrosCol.countDocuments();
     if (astroCount === 0) {
       const astrosData = loadData("astrologers.json", []);
@@ -39,8 +48,14 @@ export async function seedAtlasIfEmpty() {
       }
     }
 
-    // 4. Seed Reels
+    // 4. Clean up legacy dummy reels and seed only if real data exists
     const reelsCol = db.collection("reels");
+    await reelsCol.deleteMany({
+      $or: [
+        { reelId: { $in: ["1", "2", "3"] } },
+        { id: { $in: ["1", "2", "3"] } },
+      ],
+    });
     const reelCount = await reelsCol.countDocuments();
     if (reelCount === 0) {
       const reelsData = loadData("reels.json", []);
