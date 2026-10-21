@@ -2,6 +2,7 @@ import express from "express";
 import {
   getAllUsers,
   loginUser,
+  signupUser,
   logoutUser,
   verifySession,
   updateUserName,
@@ -13,6 +14,8 @@ const router = express.Router();
 
 router.get("/", getAllUsers);
 router.post("/login", loginUser);
+router.post("/signup", signupUser);
+router.post("/register", signupUser);
 router.post("/logout", logoutUser);
 router.get("/verify-session", verifySession);
 router.put("/profile/name", updateUserName);

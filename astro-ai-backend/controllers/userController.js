@@ -16,50 +16,34 @@ export const getAllUsers = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
-    const { email, name, googleCredential } = req.body;
+    const { email, password } = req.body;
 
-    let verifiedEmail = email;
-    let verifiedName = name;
-    let verifiedAvatar = "";
-
-    // If Google ID token is supplied, verify signature & audience directly with Google
-    if (googleCredential) {
-      try {
-        const googleRes = await fetch(
-          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(googleCredential)}`
-        );
-        if (googleRes.ok) {
-          const payload = await googleRes.json();
-          if (payload.email && (payload.email_verified === "true" || payload.email_verified === true)) {
-            verifiedEmail = payload.email;
-            verifiedName = payload.name || payload.email.split("@")[0];
-            verifiedAvatar = payload.picture || "";
-          }
-        }
-      } catch (gErr) {
-        console.warn("⚠️ [Google OAuth] Token verification network warning:", gErr.message);
-      }
-    }
-
-    if (!verifiedEmail) {
+    if (!email) {
       return res.status(400).json({ success: false, message: "Valid email is required" });
     }
 
-    const cleanEmail = verifiedEmail.trim().toLowerCase();
-    const cleanName = (verifiedName || cleanEmail.split("@")[0]).trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await UserModel.findByEmail(cleanEmail);
 
-    let user = await UserModel.findByEmail(cleanEmail);
-
+    // STRICT LOGIN CHECK: Do NOT create user if not found!
     if (!user) {
-      console.log(`🍃 [Auth] Creating new user for email: ${cleanEmail}`);
-      user = await UserModel.create({
-        name: cleanName,
-        email: cleanEmail,
-        avatar: verifiedAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+      return res.status(404).json({
+        success: false,
+        code: "USER_NOT_FOUND",
+        message: "No account found with this email. Please Sign Up first.",
       });
-    } else {
-      console.log(`🍃 [Auth] Found existing user: ${user.name} (${user.email})`);
     }
+
+    // Optional password verification if stored
+    if (user.password && password && user.password !== password) {
+      return res.status(401).json({
+        success: false,
+        code: "INVALID_PASSWORD",
+        message: "Incorrect password. Please try again.",
+      });
+    }
+
+    console.log(`🍃 [Auth] User logged in successfully: ${user.name} (${user.email})`);
 
     // Cryptographically random session token
     const sessionToken = `astro_session_${crypto.randomBytes(32).toString("hex")}`;
@@ -73,6 +57,49 @@ export const loginUser = async (req, res) => {
     });
   } catch (err) {
     console.error("⚠️ [Auth] Login error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const signupUser = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Valid email is required" });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = (name || cleanEmail.split("@")[0]).trim();
+
+    const existingUser = await UserModel.findByEmail(cleanEmail);
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        code: "USER_ALREADY_EXISTS",
+        message: "Account already exists with this email. Please Login instead.",
+      });
+    }
+
+    console.log(`🍃 [Auth] Creating new registered user: ${cleanName} (${cleanEmail})`);
+    const newUser = await UserModel.create({
+      name: cleanName,
+      email: cleanEmail,
+      password: password || "",
+      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+    });
+
+    const sessionToken = `astro_session_${crypto.randomBytes(32).toString("hex")}`;
+    activeSessions.add(sessionToken);
+
+    res.status(201).json({
+      success: true,
+      message: "Account created successfully!",
+      user: newUser,
+      token: sessionToken,
+    });
+  } catch (err) {
+    console.error("⚠️ [Auth] Signup error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

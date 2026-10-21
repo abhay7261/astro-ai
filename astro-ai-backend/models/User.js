@@ -26,13 +26,13 @@ const DEFAULT_USERS = [
     isBanned: false,
   },
   {
-    id: "u-3",
-    userId: "u-3",
-    name: "Pooja Malhotra",
-    email: "pooja.m@example.com",
-    joinedDate: "14 Oct 2026",
-    walletBalance: 80,
-    totalConsultations: 2,
+    id: "u-demo",
+    userId: "u-demo",
+    name: "Demo User",
+    email: "demo@astroai.com",
+    joinedDate: "Today",
+    walletBalance: 100,
+    totalConsultations: 1,
     isVIP: true,
     isBanned: false,
   },
@@ -52,6 +52,7 @@ const userSchema = new mongoose.Schema(
     isVIP: { type: Boolean, default: false },
     isBanned: { type: Boolean, default: false },
     avatar: { type: String, default: "" },
+    password: { type: String, default: "" },
   },
   { timestamps: true }
 );
@@ -116,6 +117,7 @@ export const UserModel = {
       totalConsultations: 0,
       isVIP: data.isVIP || false,
       isBanned: false,
+      password: data.password || "",
       avatar: data.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
     };
 

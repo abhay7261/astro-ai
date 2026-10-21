@@ -69,25 +69,115 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
     const displayName = activeTab === "signup" ? (name.trim() || "Seeker") : email.split("@")[0].replace(".", " ");
     const cleanEmail = email.trim().toLowerCase();
 
-    // Fast-path login: Race network call against a 1.5s timeout.
-    // Never make the user wait 30-50s for a sleeping Render server!
-    try {
-      const serverCall = usersApi.login(cleanEmail, displayName);
-      const timer = new Promise((resolve) => setTimeout(() => resolve(null), 1500));
+    // 1. LOGIN TAB — STRICT CHECK (Must NOT log in or create user if not registered!)
+    if (activeTab === "signin") {
+      try {
+        const result = await usersApi.login(cleanEmail, password);
+        setIsLoading(false);
 
-      const result: any = await Promise.race([serverCall, timer]);
-      setIsLoading(false);
+        // Account found & login successful
+        if (result && result.success && result.user) {
+          onAuthenticated({
+            id: result.user.userId || result.user.id || result.user._id,
+            name: result.user.name || displayName,
+            email: result.user.email || cleanEmail,
+            avatar: result.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+            isVip: result.user.isVIP || false,
+          }, result.token);
+          return;
+        }
 
-      if (result && result.success && result.user) {
+        // User not found in database -> STRICT REJECTION
+        if (result && (result.code === "USER_NOT_FOUND" || result.message?.toLowerCase().includes("not found") || result.message?.includes("nahi mila"))) {
+          setErrorMessage("No account found with this email. Please Sign Up first.");
+          return;
+        }
+
+        if (result && result.code === "INVALID_PASSWORD") {
+          setErrorMessage("Incorrect password. Please try again.");
+          return;
+        }
+
+        // If backend was unreachable, check local registered users
+        const localAccountsStr = localStorage.getItem("astroai_registered_users");
+        const localAccounts: any[] = localAccountsStr ? JSON.parse(localAccountsStr) : [];
+        const localFound = localAccounts.find((u) => u.email.toLowerCase() === cleanEmail);
+
+        if (!localFound) {
+          // STRICT: Do NOT log in if user has not signed up!
+          setErrorMessage("No account found with this email. Please Sign Up first.");
+          return;
+        }
+
+        if (localFound.password && localFound.password !== password) {
+          setErrorMessage("Incorrect password. Please try again.");
+          return;
+        }
+
+        // Registered user found locally
+        const token = `astro_session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
         onAuthenticated({
-          id: result.user.userId || result.user.id || result.user._id,
-          name: result.user.name || displayName,
-          email: result.user.email || cleanEmail,
-          avatar: result.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
-          isVip: result.user.isVIP || false,
-        }, result.token);
-      } else {
-        // Fast optimistic session (instant login within 1.5s)
+          id: `u-${Date.now()}`,
+          name: localFound.name || displayName,
+          email: cleanEmail,
+          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+          isVip: false,
+        }, token);
+      } catch (err: any) {
+        setIsLoading(false);
+        setErrorMessage("No account found with this email. Please click Sign Up first.");
+      }
+    } else {
+      // 2. SIGN UP TAB — Check duplicate & register new user
+      try {
+        const localAccountsStr = localStorage.getItem("astroai_registered_users");
+        const localAccounts: any[] = localAccountsStr ? JSON.parse(localAccountsStr) : [];
+
+        // Check if already registered locally
+        if (localAccounts.some((u) => u.email.toLowerCase() === cleanEmail)) {
+          setIsLoading(false);
+          setErrorMessage("Account already exists with this email. Please Login instead.");
+          return;
+        }
+
+        const result = await usersApi.signup(displayName, cleanEmail, password);
+        setIsLoading(false);
+
+        if (result && (result.code === "USER_ALREADY_EXISTS" || result.message?.includes("already exists"))) {
+          setErrorMessage("Account already exists with this email. Please Login instead.");
+          return;
+        }
+
+        // Record account in local accounts registry
+        localAccounts.push({ email: cleanEmail, name: displayName, password });
+        localStorage.setItem("astroai_registered_users", JSON.stringify(localAccounts));
+
+        if (result && result.success && result.user) {
+          onAuthenticated({
+            id: result.user.userId || result.user.id || result.user._id,
+            name: result.user.name || displayName,
+            email: result.user.email || cleanEmail,
+            avatar: result.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+            isVip: result.user.isVIP || false,
+          }, result.token);
+        } else {
+          // Optimistic sign up session
+          const token = `astro_session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+          onAuthenticated({
+            id: `u-${Date.now()}`,
+            name: displayName,
+            email: cleanEmail,
+            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+            isVip: false,
+          }, token);
+        }
+      } catch {
+        setIsLoading(false);
+        const localAccountsStr = localStorage.getItem("astroai_registered_users");
+        const localAccounts: any[] = localAccountsStr ? JSON.parse(localAccountsStr) : [];
+        localAccounts.push({ email: cleanEmail, name: displayName, password });
+        localStorage.setItem("astroai_registered_users", JSON.stringify(localAccounts));
+
         const token = `astro_session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
         onAuthenticated({
           id: `u-${Date.now()}`,
@@ -96,20 +186,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
           isVip: false,
         }, token);
-
-        // Keep background sync running to save user in MongoDB Atlas
-        serverCall.catch(() => {});
       }
-    } catch {
-      setIsLoading(false);
-      const token = `astro_session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-      onAuthenticated({
-        id: `u-${Date.now()}`,
-        name: displayName,
-        email: cleanEmail,
-        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
-        isVip: false,
-      }, token);
     }
   };
 
@@ -130,27 +207,27 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const handleQuickDemo = async () => {
     setIsLoading(true);
     try {
-      const res = await usersApi.login("rahul.verma@example.com", "Rahul Verma");
+      const res = await usersApi.login("demo@astroai.com", "Demo User");
       setIsLoading(false);
       if (res && res.success && res.user) {
         onAuthenticated({
           id: res.user.userId || res.user.id || res.user._id,
-          name: res.user.name,
-          email: res.user.email,
+          name: res.user.name || "Demo User",
+          email: res.user.email || "demo@astroai.com",
           avatar: res.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
           isVip: res.user.isVIP || true,
-        });
+        }, res.token);
         return;
       }
     } catch {}
     setIsLoading(false);
     onAuthenticated({
       id: "demo_user_1",
-      name: "Rahul Verma",
-      email: "rahul.verma@example.com",
+      name: "Demo User",
+      email: "demo@astroai.com",
       avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
       isVip: true,
-    });
+    }, "astro_session_demo");
   };
 
   return (

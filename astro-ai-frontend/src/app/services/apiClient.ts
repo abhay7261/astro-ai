@@ -158,10 +158,16 @@ export const usersApi = {
     const data = await apiRequest<{ success: boolean; users: any[] }>("/users");
     return data?.users || null;
   },
-  login: async (email: string, name?: string, googleCredential?: string) => {
-    return await apiRequest<{ success: boolean; user: any; token: string }>("/users/login", {
+  login: async (email: string, password?: string) => {
+    return await apiRequest<{ success: boolean; user?: any; token?: string; message?: string; code?: string }>("/users/login", {
       method: "POST",
-      body: JSON.stringify({ email, name, googleCredential }),
+      body: JSON.stringify({ email, password }),
+    });
+  },
+  signup: async (name: string, email: string, password?: string) => {
+    return await apiRequest<{ success: boolean; user?: any; token?: string; message?: string; code?: string }>("/users/signup", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password }),
     });
   },
   logout: async (token?: string) => {
