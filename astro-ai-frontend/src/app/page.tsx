@@ -1,7 +1,7 @@
 "use client";
 
-import AstroMobileApp from "./components/mobile/AstroMobileApp";
+import HomePage from "./home/page";
 
 export default function RootEntryPage() {
-  return <AstroMobileApp />;
+  return <HomePage />;
 }

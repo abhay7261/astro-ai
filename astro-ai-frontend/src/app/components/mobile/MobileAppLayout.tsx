@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import MobileBottomNav from "./MobileBottomNav";
 import AppHeader from "./AppHeader";
 import FloatingReelsButton from "./FloatingReelsButton";
+import AuthGateModal from "./AuthGateModal";
 import { AuthUser } from "./AuthScreen";
 import { usersApi } from "../../services/apiClient";
 
@@ -22,28 +23,35 @@ export default function MobileAppLayout({
   title,
 }: MobileAppLayoutProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const [authFeatureName, setAuthFeatureName] = useState<string | undefined>(undefined);
+  const [pendingCallback, setPendingCallback] = useState<(() => void) | null>(null);
 
   useEffect(() => {
     const verifyAndLoadSession = () => {
       try {
-        // Explicit Session Gate:
-        // User must have explicitly logged in during this active browser session.
         const sessionToken = sessionStorage.getItem("astroai_session_token");
         const sessionUserStr = sessionStorage.getItem("astroai_session_user");
 
-        if (!sessionToken || !sessionUserStr) {
-          // No active session in this tab/window -> enforce explicit login
-          router.replace("/");
-          return;
+        if (sessionToken && sessionUserStr) {
+          const parsed = JSON.parse(sessionUserStr);
+          setUser(parsed);
+        } else {
+          setUser(null);
+          // If accessing a protected route directly as guest, prompt Login / Sign Up!
+          const isHome = pathname === "/" || pathname === "/home";
+          if (!isHome) {
+            setShowAuthGate(true);
+            setAuthFeatureName(title || "this feature");
+          }
         }
-
-        const parsed = JSON.parse(sessionUserStr);
-        setUser(parsed);
         setIsHydrated(true);
       } catch {
-        router.replace("/");
+        setUser(null);
+        setIsHydrated(true);
       }
     };
 
@@ -55,31 +63,71 @@ export default function MobileAppLayout({
         const sessionUserStr = sessionStorage.getItem("astroai_session_user");
         if (sessionUserStr) {
           setUser(JSON.parse(sessionUserStr));
+        } else {
+          setUser(null);
         }
       } catch (e) {}
     };
 
+    // Listen to global auth requests from anywhere in the app
+    const handleOpenAuth = (e: any) => {
+      setShowAuthGate(true);
+      setAuthFeatureName(e.detail?.featureName || undefined);
+      if (typeof e.detail?.callback === "function") {
+        setPendingCallback(() => e.detail.callback);
+      }
+    };
+
     window.addEventListener("astroai_user_updated", handleUserUpdate);
-    return () => window.removeEventListener("astroai_user_updated", handleUserUpdate);
-  }, [router]);
+    window.addEventListener("astroai_open_auth", handleOpenAuth);
+
+    return () => {
+      window.removeEventListener("astroai_user_updated", handleUserUpdate);
+      window.removeEventListener("astroai_open_auth", handleOpenAuth);
+    };
+  }, [pathname, title]);
+
+  // Auth Success Callback
+  const handleAuthSuccess = () => {
+    try {
+      const sessionUserStr = sessionStorage.getItem("astroai_session_user");
+      if (sessionUserStr) {
+        setUser(JSON.parse(sessionUserStr));
+      }
+    } catch {}
+    setShowAuthGate(false);
+    if (pendingCallback) {
+      pendingCallback();
+      setPendingCallback(null);
+    }
+  };
+
+  // Close Auth Gate Modal
+  const handleCloseAuth = () => {
+    setShowAuthGate(false);
+    setPendingCallback(null);
+    // If guest was trying to open a protected page directly, return to /home
+    const isHome = pathname === "/" || pathname === "/home";
+    if (!isHome) {
+      router.replace("/home");
+    }
+  };
 
   // Explicit Secure Logout Handler
   const handleSignOut = async () => {
     try {
       const token = sessionStorage.getItem("astroai_session_token") || undefined;
-      // Invalidate active session on server
       if (token) {
         usersApi.logout(token).catch(() => {});
       }
-      // Purge client session credentials
       sessionStorage.removeItem("astroai_session_token");
       sessionStorage.removeItem("astroai_session_user");
       localStorage.removeItem("astroai_auth_user");
+      setUser(null);
     } catch (e) {
       console.warn("Storage sign out cleanup error", e);
     }
-    // Return to login screen
-    router.replace("/");
+    router.replace("/home");
   };
 
   // Avoid hydration flicker
@@ -99,6 +147,7 @@ export default function MobileAppLayout({
       <AppHeader
         user={user}
         onSignOut={handleSignOut}
+        onOpenAuth={() => setShowAuthGate(true)}
         showBack={showBack}
         backTitle={backTitle}
         title={title}
@@ -114,6 +163,14 @@ export default function MobileAppLayout({
 
       {/* Mobile Bottom Navigation (4 Core Tabs) */}
       <MobileBottomNav />
+
+      {/* Action-Gated Login & Sign Up Modal */}
+      <AuthGateModal
+        isOpen={showAuthGate}
+        featureName={authFeatureName}
+        onClose={handleCloseAuth}
+        onSuccess={handleAuthSuccess}
+      />
     </div>
   );
 }

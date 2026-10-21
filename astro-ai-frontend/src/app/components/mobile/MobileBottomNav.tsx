@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Home, Bot, MessageCircle, User } from "lucide-react";
 
 interface NavItem {
@@ -19,6 +19,25 @@ const navItems: NavItem[] = [
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleNavClick = (e: React.MouseEvent, item: NavItem) => {
+    if (item.href === "/home" || item.href === "/") return;
+    try {
+      const sessionToken = sessionStorage.getItem("astroai_session_token");
+      if (!sessionToken) {
+        e.preventDefault();
+        window.dispatchEvent(
+          new CustomEvent("astroai_open_auth", {
+            detail: {
+              featureName: item.label,
+              callback: () => router.push(item.href),
+            },
+          })
+        );
+      }
+    } catch {}
+  };
 
   return (
     <nav
@@ -37,6 +56,7 @@ export default function MobileBottomNav() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={(e) => handleNavClick(e, item)}
               className={`flex-1 flex flex-col items-center justify-center py-1 rounded-2xl transition-all duration-200 active:scale-90 ${
                 isActive
                   ? "text-terracotta"

@@ -1,16 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Clapperboard, Flame, Bot, Sparkles } from "lucide-react";
 
 export default function FloatingReelsButton() {
   const pathname = usePathname();
+  const router = useRouter();
 
   // On full-screen Reels page, hide all floating buttons
   if (pathname === "/reels") {
     return null;
   }
+
+  const handleAction = (e: React.MouseEvent, href: string, featureName: string) => {
+    try {
+      const sessionToken = sessionStorage.getItem("astroai_session_token");
+      if (!sessionToken) {
+        e.preventDefault();
+        window.dispatchEvent(
+          new CustomEvent("astroai_open_auth", {
+            detail: {
+              featureName,
+              callback: () => router.push(href),
+            },
+          })
+        );
+      }
+    } catch {}
+  };
 
   return (
     <aside
@@ -21,6 +39,7 @@ export default function FloatingReelsButton() {
       {pathname !== "/ai-chat" && (
         <Link
           href="/ai-chat"
+          onClick={(e) => handleAction(e, "/ai-chat", "24/7 AI Astrologer Chat")}
           title="Chat with 24/7 AI Astrologer"
           className="group relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#581C87] via-[#9333EA] to-[#F59E0B] text-white shadow-[0_8px_25px_rgba(147,51,234,0.4)] border-2 border-white/95 hover:scale-110 active:scale-90 transition-all duration-300"
         >
@@ -46,6 +65,7 @@ export default function FloatingReelsButton() {
       {/* 2. Astro Reels Floating Button (Placed Directly BELOW Ask AI) */}
       <Link
         href="/reels"
+        onClick={(e) => handleAction(e, "/reels", "Astro Short Video Reels")}
         title="Watch Fullscreen Astro Reels"
         className="group relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#8E2800] via-terracotta to-amber-500 text-white shadow-[0_8px_25px_rgba(183,71,42,0.45)] border-2 border-white/95 hover:scale-110 active:scale-90 transition-all duration-300"
       >

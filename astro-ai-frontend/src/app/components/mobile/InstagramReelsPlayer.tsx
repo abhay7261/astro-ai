@@ -9,6 +9,7 @@ import {
   Flame, Music2, CheckCircle2, Bookmark, Film
 } from "lucide-react";
 import AstroChatModal from "../AstroChatModal";
+import AuthGateModal from "./AuthGateModal";
 import { reelsApi } from "../../services/apiClient";
 
 export interface ReelItem {
@@ -189,6 +190,76 @@ export default function InstagramReelsPlayer() {
   const [duration, setDuration] = useState(0);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [showPlayPauseFeedback, setShowPlayPauseFeedback] = useState<"play" | "pause" | null>(null);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const [authFeatureName, setAuthFeatureName] = useState<string>("Astro Reels");
+  const [pendingAuthAction, setPendingAuthAction] = useState<(() => void) | null>(null);
+
+  // Require Auth Check: Prompt Login/Sign Up for guests on direct navigation to Reels
+  useEffect(() => {
+    try {
+      const sessionToken = sessionStorage.getItem("astroai_session_token");
+      if (!sessionToken) {
+        setShowAuthGate(true);
+        setAuthFeatureName("Astro Reels");
+      }
+    } catch {}
+  }, []);
+
+  const handleCloseAuth = () => {
+    setShowAuthGate(false);
+    setPendingAuthAction(null);
+    const sessionToken = sessionStorage.getItem("astroai_session_token");
+    if (!sessionToken) {
+      router.replace("/home");
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuthGate(false);
+    if (pendingAuthAction) {
+      pendingAuthAction();
+      setPendingAuthAction(null);
+    }
+  };
+
+  const handleAstroChatClick = (astroData: any) => {
+    try {
+      const sessionToken = sessionStorage.getItem("astroai_session_token");
+      if (!sessionToken) {
+        setAuthFeatureName(`Chat with ${astroData.name}`);
+        setPendingAuthAction(() => () => setSelectedAstroForChat(astroData));
+        setShowAuthGate(true);
+        return;
+      }
+    } catch {}
+    setSelectedAstroForChat(astroData);
+  };
+
+  const handleCommentsDrawerOpen = () => {
+    try {
+      const sessionToken = sessionStorage.getItem("astroai_session_token");
+      if (!sessionToken) {
+        setAuthFeatureName("Reel Comments");
+        setPendingAuthAction(() => () => setShowCommentsDrawer(true));
+        setShowAuthGate(true);
+        return;
+      }
+    } catch {}
+    setShowCommentsDrawer(true);
+  };
+
+  const handleLikeWithAuth = (reelId: string) => {
+    try {
+      const sessionToken = sessionStorage.getItem("astroai_session_token");
+      if (!sessionToken) {
+        setAuthFeatureName("Like Reel");
+        setPendingAuthAction(() => () => handleLikeToggle(reelId));
+        setShowAuthGate(true);
+        return;
+      }
+    } catch {}
+    handleLikeToggle(reelId);
+  };
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const reelRefs = useRef<(HTMLElement | null)[]>([]);
@@ -648,7 +719,7 @@ export default function InstagramReelsPlayer() {
                 {/* Astrologer Avatar + Plus */}
                 <div className="relative group">
                   <button
-                    onClick={() => setSelectedAstroForChat({
+                    onClick={() => handleAstroChatClick({
                       id: reel.id,
                       name: reel.astrologerName,
                       title: reel.astrologerTitle,
@@ -668,7 +739,7 @@ export default function InstagramReelsPlayer() {
                     />
                   </button>
                   <button
-                    onClick={() => setSelectedAstroForChat({
+                    onClick={() => handleAstroChatClick({
                       id: reel.id,
                       name: reel.astrologerName,
                       title: reel.astrologerTitle,
@@ -685,7 +756,7 @@ export default function InstagramReelsPlayer() {
 
                 {/* Like Button */}
                 <button
-                  onClick={() => handleLikeToggle(reel.id)}
+                  onClick={() => handleLikeWithAuth(reel.id)}
                   className="flex flex-col items-center gap-1 active:scale-80 transition-transform cursor-pointer"
                 >
                   <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md border ${
@@ -702,7 +773,7 @@ export default function InstagramReelsPlayer() {
 
                 {/* Comments Button */}
                 <button
-                  onClick={() => setShowCommentsDrawer(true)}
+                  onClick={handleCommentsDrawerOpen}
                   className="flex flex-col items-center gap-1 active:scale-80 transition-transform cursor-pointer"
                 >
                   <div className="w-11 h-11 rounded-full bg-black/40 border border-white/20 flex items-center justify-center backdrop-blur-md text-white hover:bg-black/60">
@@ -771,7 +842,7 @@ export default function InstagramReelsPlayer() {
                   </span>
 
                   <button
-                    onClick={() => setSelectedAstroForChat({
+                    onClick={() => handleAstroChatClick({
                       id: reel.id,
                       name: reel.astrologerName,
                       title: reel.astrologerTitle,
@@ -1023,6 +1094,14 @@ export default function InstagramReelsPlayer() {
           onClose={() => setSelectedAstroForChat(null)}
         />
       )}
+
+      {/* Action-Gated Login & Sign Up Modal */}
+      <AuthGateModal
+        isOpen={showAuthGate}
+        featureName={authFeatureName}
+        onClose={handleCloseAuth}
+        onSuccess={handleAuthSuccess}
+      />
 
     </div>
   );

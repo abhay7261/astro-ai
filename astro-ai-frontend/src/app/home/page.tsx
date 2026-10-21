@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { 
   Sparkles, Bot, MessageCircle, Crown, ArrowRight, 
   Sun, Clapperboard, ChevronRight, Star, Flame, CheckCircle2,
@@ -16,6 +17,7 @@ import VedicAstrolabeChakra from "../components/mobile/VedicAstrolabeChakra";
 import { astrologersApi } from "../services/apiClient";
 
 export default function HomePage() {
+  const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
@@ -28,6 +30,44 @@ export default function HomePage() {
     experience: string;
     specialty: string;
   } | null>(null);
+
+  // Require Auth Helper for Action-Gating
+  const handleActionClick = (e: React.MouseEvent, href: string, featureName: string) => {
+    try {
+      const sessionToken = sessionStorage.getItem("astroai_session_token");
+      if (!sessionToken) {
+        e.preventDefault();
+        window.dispatchEvent(
+          new CustomEvent("astroai_open_auth", {
+            detail: {
+              featureName,
+              callback: () => router.push(href),
+            },
+          })
+        );
+      }
+    } catch {}
+  };
+
+  const handleAstroChatClick = (astro: any) => {
+    try {
+      const sessionToken = sessionStorage.getItem("astroai_session_token");
+      if (!sessionToken) {
+        window.dispatchEvent(
+          new CustomEvent("astroai_open_auth", {
+            detail: {
+              featureName: `Chat with ${astro.name}`,
+              callback: () => setSelectedAstroForChat(astro),
+            },
+          })
+        );
+      } else {
+        setSelectedAstroForChat(astro);
+      }
+    } catch {
+      setSelectedAstroForChat(astro);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -172,6 +212,19 @@ export default function HomePage() {
                 {/* Edit Name Button */}
                 <button
                   onClick={() => {
+                    try {
+                      const sessionToken = sessionStorage.getItem("astroai_session_token");
+                      if (!sessionToken) {
+                        window.dispatchEvent(
+                          new CustomEvent("astroai_open_auth", {
+                            detail: {
+                              featureName: "Profile & Name Settings",
+                            },
+                          })
+                        );
+                        return;
+                      }
+                    } catch {}
                     setNameInput(user?.name || "");
                     setIsEditingName(true);
                   }}
@@ -244,6 +297,7 @@ export default function HomePage() {
             {/* Dedicated AI Astrologer Chat */}
             <Link
               href="/ai-chat"
+              onClick={(e) => handleActionClick(e, "/ai-chat", "24/7 AI Astrologer")}
               className="bg-gradient-to-br from-white via-[#FAF5FF] to-[#F3E8FF] p-4 rounded-2xl border-2 border-purple-300/80 hover:border-purple-500/70 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between group active:scale-95"
             >
               <div className="flex items-center justify-between mb-2">
@@ -264,6 +318,7 @@ export default function HomePage() {
             {/* Chat with Verified Astrologer */}
             <Link
               href="/chat"
+              onClick={(e) => handleActionClick(e, "/chat", "Astrologer Chat")}
               className="bg-gradient-to-br from-white via-[#F6FCF9] to-[#E9F8F0] p-4 rounded-2xl border-2 border-emerald-300/80 hover:border-emerald-500/70 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between group active:scale-95"
             >
               <div className="flex items-center justify-between mb-2">
@@ -284,6 +339,7 @@ export default function HomePage() {
             {/* Astro Reels */}
             <Link
               href="/reels"
+              onClick={(e) => handleActionClick(e, "/reels", "Astro Short Video Reels")}
               className="bg-gradient-to-br from-white via-[#FFF7ED] to-[#FFEDD5] p-4 rounded-2xl border-2 border-orange-300/80 hover:border-orange-500/70 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between group active:scale-95"
             >
               <div className="flex items-center justify-between mb-2">
@@ -304,6 +360,7 @@ export default function HomePage() {
             {/* VIP Astro Pass */}
             <Link
               href="/vip-pass"
+              onClick={(e) => handleActionClick(e, "/vip-pass", "VIP Astro Pass")}
               className="bg-gradient-to-br from-white via-[#FFFDF5] to-[#FEF9C3]/50 p-4 rounded-2xl border-2 border-amber-300/80 hover:border-amber-500/70 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between group active:scale-95"
             >
               <div className="flex items-center justify-between mb-2">
@@ -337,6 +394,7 @@ export default function HomePage() {
               </div>
               <Link
                 href="/chat"
+                onClick={(e) => handleActionClick(e, "/chat", "Astrologers List")}
                 className="text-xs font-bold text-terracotta hover:underline flex items-center gap-0.5 group"
               >
                 <span>View All</span>
@@ -380,7 +438,7 @@ export default function HomePage() {
                   </div>
 
                   <button
-                    onClick={() => setSelectedAstroForChat(astro)}
+                    onClick={() => handleAstroChatClick(astro)}
                     className="px-4 py-2 rounded-xl bg-gradient-to-r from-terracotta to-amber-600 hover:opacity-95 text-white text-xs font-bold shadow-md shadow-terracotta/20 transition-all active:scale-95 flex-shrink-0 sm:w-full"
                   >
                     Chat Now
@@ -423,6 +481,7 @@ export default function HomePage() {
 
           <Link
             href="/vip-pass"
+            onClick={(e) => handleActionClick(e, "/vip-pass", "VIP Astro Pass")}
             className="relative z-10 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-espresso font-black text-xs sm:text-sm shadow-xl shadow-amber-500/25 hover:scale-105 active:scale-95 transition-all whitespace-nowrap self-stretch sm:self-auto text-center"
           >
             <span>View VIP Pass</span>

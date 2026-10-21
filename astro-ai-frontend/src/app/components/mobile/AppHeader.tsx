@@ -9,6 +9,7 @@ import { AuthUser } from "./AuthScreen";
 interface AppHeaderProps {
   user: AuthUser | null;
   onSignOut: () => void;
+  onOpenAuth?: () => void;
   showBack?: boolean;
   backTitle?: string;
   title?: string;
@@ -17,6 +18,7 @@ interface AppHeaderProps {
 export default function AppHeader({
   user,
   onSignOut,
+  onOpenAuth,
   showBack = false,
   backTitle = "Back",
   title,
@@ -69,40 +71,52 @@ export default function AppHeader({
           )}
         </div>
 
-        {/* Right Side: Profile link & Sign Out */}
+        {/* Right Side: Profile link & Sign Out OR Login / Sign Up */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* User Profile Avatar Link */}
-          <Link
-            href="/profile"
-            className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1 rounded-full border border-amber-300/60 bg-white/95 hover:bg-peach/40 transition-all shadow-xs active:scale-95 group"
-            title="View Profile"
-          >
-            <div className="relative w-6 h-6 sm:w-7 sm:h-7 rounded-full overflow-hidden border border-terracotta/60 bg-espresso flex-shrink-0">
-              <Image
-                src={user?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80"}
-                alt="Profile"
-                width={28}
-                height={28}
-                unoptimized
-                className="object-cover w-full h-full"
-              />
-              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
-            </div>
-            {user?.name && (
-              <span className="hidden sm:inline text-xs font-bold text-espresso group-hover:text-terracotta pr-1 max-w-[100px] truncate transition-colors">
-                {user.name.split(" ")[0]}
-              </span>
-            )}
-          </Link>
+          {!user ? (
+            <button
+              onClick={onOpenAuth}
+              className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-terracotta to-amber-600 hover:opacity-95 text-white text-xs font-bold shadow-sm shadow-terracotta/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Login / Sign Up</span>
+            </button>
+          ) : (
+            <>
+              {/* User Profile Avatar Link */}
+              <Link
+                href="/profile"
+                className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1 rounded-full border border-amber-300/60 bg-white/95 hover:bg-peach/40 transition-all shadow-xs active:scale-95 group"
+                title="View Profile"
+              >
+                <div className="relative w-6 h-6 sm:w-7 sm:h-7 rounded-full overflow-hidden border border-terracotta/60 bg-espresso flex-shrink-0">
+                  <Image
+                    src={user?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80"}
+                    alt="Profile"
+                    width={28}
+                    height={28}
+                    unoptimized
+                    className="object-cover w-full h-full"
+                  />
+                  <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
+                </div>
+                {user?.name && (
+                  <span className="hidden sm:inline text-xs font-bold text-espresso group-hover:text-terracotta pr-1 max-w-[100px] truncate transition-colors">
+                    {user.name.split(" ")[0]}
+                  </span>
+                )}
+              </Link>
 
-          {/* Sign Out Button */}
-          <button
-            onClick={onSignOut}
-            title="Sign Out"
-            className="w-8 h-8 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 flex items-center justify-center transition-all active:scale-90 shadow-xs"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
+              {/* Sign Out Button */}
+              <button
+                onClick={onSignOut}
+                title="Sign Out"
+                className="w-8 h-8 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 flex items-center justify-center transition-all active:scale-90 shadow-xs"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
         </div>
 
       </div>
