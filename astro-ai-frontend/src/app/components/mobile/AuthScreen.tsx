@@ -32,6 +32,13 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState(false);
 
+  // Pre-warm backend API in background so Render free tier container wakes up
+  useEffect(() => {
+    try {
+      fetch("https://astro-ai-x5c6.onrender.com/api/v1/users", { method: "HEAD" }).catch(() => {});
+    } catch {}
+  }, []);
+
   // Email Validation regex
   const isValidEmail = (val: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
@@ -43,55 +50,66 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
 
     // Form validations
     if (activeTab === "signup" && !name.trim()) {
-      setErrorMessage("Please enter your full name.");
+      setErrorMessage("Please enter your name.");
       return;
     }
 
     if (!email.trim() || !isValidEmail(email)) {
-      setErrorMessage("Please enter a valid email address (e.g. name@example.com).");
+      setErrorMessage("Please enter a valid email address.");
       return;
     }
 
     if (!password || password.length < 6) {
-      setErrorMessage("Password must be at least 6 characters long.");
+      setErrorMessage("Password must be at least 6 characters.");
       return;
     }
 
     setIsLoading(true);
 
-    const displayName = activeTab === "signup" ? name.trim() : email.split("@")[0].replace(".", " ");
+    const displayName = activeTab === "signup" ? (name.trim() || "Seeker") : email.split("@")[0].replace(".", " ");
     const cleanEmail = email.trim().toLowerCase();
 
+    // Fast-path login: Race network call against a 1.5s timeout.
+    // Never make the user wait 30-50s for a sleeping Render server!
     try {
-      const result: any = await usersApi.login(cleanEmail, displayName);
+      const serverCall = usersApi.login(cleanEmail, displayName);
+      const timer = new Promise((resolve) => setTimeout(() => resolve(null), 1500));
+
+      const result: any = await Promise.race([serverCall, timer]);
       setIsLoading(false);
 
       if (result && result.success && result.user) {
         onAuthenticated({
           id: result.user.userId || result.user.id || result.user._id,
-          name: result.user.name,
-          email: result.user.email,
+          name: result.user.name || displayName,
+          email: result.user.email || cleanEmail,
           avatar: result.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
           isVip: result.user.isVIP || false,
         }, result.token);
       } else {
+        // Fast optimistic session (instant login within 1.5s)
+        const token = `astro_session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
         onAuthenticated({
           id: `u-${Date.now()}`,
           name: displayName,
           email: cleanEmail,
           avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
           isVip: false,
-        });
+        }, token);
+
+        // Keep background sync running to save user in MongoDB Atlas
+        serverCall.catch(() => {});
       }
     } catch {
       setIsLoading(false);
+      const token = `astro_session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
       onAuthenticated({
         id: `u-${Date.now()}`,
         name: displayName,
         email: cleanEmail,
         avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
         isVip: false,
-      });
+      }, token);
     }
   };
 
@@ -169,7 +187,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
         {/* Auth Card */}
         <div className="w-full bg-white/80 backdrop-blur-md rounded-3xl p-6 sm:p-7 border border-peach shadow-xl">
           
-          {/* Sign In / Sign Up Segmented Tabs */}
+          {/* Login / Sign Up Segmented Tabs */}
           <div className="flex bg-astro-bg p-1 rounded-2xl border border-peach/80 mb-5">
             <button
               type="button"
@@ -183,7 +201,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                   : "text-espresso/70 hover:text-espresso"
               }`}
             >
-              Sign In
+              Login
             </button>
             <button
               type="button"
@@ -197,7 +215,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                   : "text-espresso/70 hover:text-espresso"
               }`}
             >
-              Create Account
+              Sign Up
             </button>
           </div>
 
@@ -292,7 +310,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
                 <div className="w-5 h-5 border-2 border-astro-bg border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>{activeTab === "signin" ? "Sign In" : "Create Free Account"}</span>
+                  <span>{activeTab === "signin" ? "Login" : "Sign Up"}</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -307,7 +325,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
               className="text-xs text-espresso/70 hover:text-terracotta inline-flex items-center gap-1 font-semibold transition-colors"
             >
               <Sparkles className="w-3.5 h-3.5 text-terracotta" />
-              <span>Instant Test Login (1-Tap Demo)</span>
+              <span>Instant Demo Login (1-Tap)</span>
             </button>
           </div>
 

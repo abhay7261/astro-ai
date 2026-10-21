@@ -5,24 +5,34 @@
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://astro-ai-x5c6.onrender.com/api/v1";
 
-// Generic request helper with timeout and fallback
+// Generic request helper with fast timeout and fallback
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+
   try {
     const res = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
+      signal: options.signal || controller.signal,
       headers: {
         "Content-Type": "application/json",
         ...(options.headers || {}),
       },
     });
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       console.warn(`[API] Error ${res.status} on ${endpoint}`);
       return null;
     }
     return await res.json();
-  } catch (err) {
-    console.warn(`[API] Network error on ${endpoint}:`, err);
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === "AbortError") {
+      console.warn(`[API] Timeout after 4s on ${endpoint} (Render waking up)`);
+    } else {
+      console.warn(`[API] Network error on ${endpoint}:`, err);
+    }
     return null;
   }
 }

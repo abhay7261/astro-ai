@@ -497,7 +497,12 @@ export default function InstagramReelsPlayer() {
       {/* Main Instagram Snap-Scroll Viewport */}
       <div
         ref={containerRef}
-        className="relative w-full h-[100dvh] max-w-md mx-auto sm:max-h-[92dvh] sm:rounded-3xl sm:border sm:border-white/15 overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar shadow-2xl bg-black"
+        data-no-scrollbar="true"
+        style={{
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+        }}
+        className="relative w-full h-[100dvh] max-w-md mx-auto sm:max-h-[92dvh] sm:rounded-3xl sm:border sm:border-white/15 overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar [&::-webkit-scrollbar]:hidden shadow-2xl bg-black"
       >
         {/* Empty State when no reels exist */}
         {allReels.length === 0 && (
@@ -619,9 +624,6 @@ export default function InstagramReelsPlayer() {
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600/90 text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
                     <Flame className="w-2.5 h-2.5 fill-white" />
                     LIVE
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-black/50 text-amber-200 text-[10px] font-mono border border-white/15">
-                    {idx + 1}/{allReels.length}
                   </span>
                 </div>
 
