@@ -6,6 +6,7 @@ import MobileBottomNav from "./MobileBottomNav";
 import AppHeader from "./AppHeader";
 import FloatingReelsButton from "./FloatingReelsButton";
 import { AuthUser } from "./AuthScreen";
+import { usersApi } from "../../services/apiClient";
 
 interface MobileAppLayoutProps {
   children: React.ReactNode;
@@ -25,40 +26,59 @@ export default function MobileAppLayout({
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    const loadUser = () => {
+    const verifyAndLoadSession = () => {
       try {
-        const savedUserStr = localStorage.getItem("astroai_auth_user");
-        if (savedUserStr) {
-          setUser(JSON.parse(savedUserStr));
-        } else {
+        // Explicit Session Gate:
+        // User must have explicitly logged in during this active browser session.
+        const sessionToken = sessionStorage.getItem("astroai_session_token");
+        const sessionUserStr = sessionStorage.getItem("astroai_session_user");
+
+        if (!sessionToken || !sessionUserStr) {
+          // No active session in this tab/window -> enforce explicit login
           router.replace("/");
           return;
         }
+
+        const parsed = JSON.parse(sessionUserStr);
+        setUser(parsed);
+        setIsHydrated(true);
       } catch {
         router.replace("/");
-        return;
       }
-      setIsHydrated(true);
     };
 
-    loadUser();
+    verifyAndLoadSession();
 
-    // Listen to custom name changes or storage updates from any component
-    window.addEventListener("astroai_user_updated", loadUser);
-    window.addEventListener("storage", loadUser);
-
-    return () => {
-      window.removeEventListener("astroai_user_updated", loadUser);
-      window.removeEventListener("storage", loadUser);
+    // Listen to profile name updates
+    const handleUserUpdate = () => {
+      try {
+        const sessionUserStr = sessionStorage.getItem("astroai_session_user");
+        if (sessionUserStr) {
+          setUser(JSON.parse(sessionUserStr));
+        }
+      } catch (e) {}
     };
+
+    window.addEventListener("astroai_user_updated", handleUserUpdate);
+    return () => window.removeEventListener("astroai_user_updated", handleUserUpdate);
   }, [router]);
 
-  const handleSignOut = () => {
+  // Explicit Secure Logout Handler
+  const handleSignOut = async () => {
     try {
+      const token = sessionStorage.getItem("astroai_session_token") || undefined;
+      // Invalidate active session on server
+      if (token) {
+        usersApi.logout(token).catch(() => {});
+      }
+      // Purge client session credentials
+      sessionStorage.removeItem("astroai_session_token");
+      sessionStorage.removeItem("astroai_session_user");
       localStorage.removeItem("astroai_auth_user");
     } catch (e) {
-      console.warn("Storage error", e);
+      console.warn("Storage sign out cleanup error", e);
     }
+    // Return to login screen
     router.replace("/");
   };
 

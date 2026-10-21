@@ -55,6 +55,9 @@ export default function HomePage() {
 
     setUser(updatedUser);
     localStorage.setItem("astroai_auth_user", JSON.stringify(updatedUser));
+    try {
+      sessionStorage.setItem("astroai_session_user", JSON.stringify(updatedUser));
+    } catch (e) {}
     setIsEditingName(false);
 
     // Broadcast update across app header and layout

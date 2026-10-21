@@ -17,7 +17,7 @@ export interface AuthUser {
 }
 
 interface AuthScreenProps {
-  onAuthenticated: (user: AuthUser) => void;
+  onAuthenticated: (user: AuthUser, token?: string) => void;
 }
 
 export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
@@ -80,26 +80,19 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
     const displayName = activeTab === "signup" ? name.trim() : email.split("@")[0].replace(".", " ");
     const cleanEmail = email.trim().toLowerCase();
 
-    // High-speed race: if backend responds in 1.8s use it, otherwise log in instantly
     try {
-      const loginPromise = usersApi.login(cleanEmail, displayName);
-      const timeoutPromise = new Promise<{ timeout: true }>((resolve) =>
-        setTimeout(() => resolve({ timeout: true }), 1800)
-      );
-
-      const result: any = await Promise.race([loginPromise, timeoutPromise]);
+      const result: any = await usersApi.login(cleanEmail, displayName);
       setIsLoading(false);
 
-      if (result && !result.timeout && result.success && result.user) {
+      if (result && result.success && result.user) {
         onAuthenticated({
           id: result.user.userId || result.user.id || result.user._id,
           name: result.user.name,
           email: result.user.email,
           avatar: result.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
           isVip: result.user.isVIP || false,
-        });
+        }, result.token);
       } else {
-        // Fast optimistic fallback
         onAuthenticated({
           id: `u-${Date.now()}`,
           name: displayName,
@@ -124,7 +117,7 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
     setShowGoogleModal(true);
   };
 
-  const handleSelectGoogleAccount = (accountEmail: string, accountName: string) => {
+  const handleSelectGoogleAccount = async (accountEmail: string, accountName: string, credential?: string) => {
     setIsGoogleLoading(true);
     setErrorMessage("");
 
@@ -136,31 +129,39 @@ export default function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       setSavedGoogleUser({ email: cleanEmail, name: cleanName });
     } catch (e) {}
 
-    const instantUser: AuthUser = {
-      id: `u-${Date.now()}`,
-      name: cleanName,
-      email: cleanEmail,
-      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
-      isVip: false,
-    };
-
-    // Instant smooth transition in 250ms
-    setTimeout(() => {
+    try {
+      const res: any = await usersApi.login(cleanEmail, cleanName, credential);
       setIsGoogleLoading(false);
       setShowGoogleModal(false);
-      onAuthenticated(instantUser);
-    }, 250);
 
-    // Background sync directly with MongoDB Atlas on Render
-    usersApi.login(cleanEmail, cleanName)
-      .then((res) => {
-        if (res && res.success && res.user) {
-          try {
-            localStorage.setItem("astroai_user_session", JSON.stringify(res.user));
-          } catch (e) {}
-        }
-      })
-      .catch(() => {});
+      if (res && res.success && res.user) {
+        onAuthenticated({
+          id: res.user.userId || res.user.id || res.user._id,
+          name: res.user.name,
+          email: res.user.email,
+          avatar: res.user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+          isVip: res.user.isVIP || false,
+        }, res.token);
+      } else {
+        onAuthenticated({
+          id: `u-${Date.now()}`,
+          name: cleanName,
+          email: cleanEmail,
+          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+          isVip: false,
+        });
+      }
+    } catch {
+      setIsGoogleLoading(false);
+      setShowGoogleModal(false);
+      onAuthenticated({
+        id: `u-${Date.now()}`,
+        name: cleanName,
+        email: cleanEmail,
+        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
+        isVip: false,
+      });
+    }
   };
 
   const handleForgotPasswordSubmit = (e: React.FormEvent) => {

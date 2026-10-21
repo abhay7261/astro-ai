@@ -24,121 +24,138 @@ interface Reel {
   comments: Comment[];
 }
 
-const reelsData: Reel[] = [
+const FALLBACK_REAL_REELS: Reel[] = [
   {
-    id: "1",
-    title: "✨ Shanivaar ko Shani Dev ko prasann karne ka 1 achook upay!",
-    astrologerName: "Acharya Vidyadhar",
-    astrologerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-burning-candle-in-the-dark-42998-large.mp4",
-    likes: 1240,
-    commentsCount: 84,
-    tags: ["#ShaniUpay", "#VedicAstro"],
+    id: "reel-1792572437",
+    title: "✨ Brihaspati Gochar 2026 Aur Bhagya Uday Upay",
+    astrologerName: "Pandit Devratna Sharma",
+    astrologerAvatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80",
+    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792572437/astroai_reels/lpuw6fhynyw8diizu4ou.mp4",
+    likes: 342,
+    commentsCount: 28,
+    tags: ["#BhagyaUday", "#DailyUpay"],
     comments: [
-      { id: "c1", userName: "Rahul Verma", text: "Acharya ji, tel kitne baje chadhana chahiye?", timeAgo: "2h ago" },
-      { id: "c2", userName: "Priya S.", text: "Bahut sundar jankari pandit ji 🙏", timeAgo: "5h ago" },
+      { id: "c1", userName: "Sunil Verma", text: "Guru ji ye upay kis din se shuru karna chahiye?", timeAgo: "2h ago" },
     ],
   },
   {
-    id: "2",
-    title: "🌙 Agar Kundli me Chandrama kamzor ho toh kya karein?",
+    id: "reel-1792572347",
+    title: "🔮 Graha Dosh Nivaran & Kundli Rahasya",
+    astrologerName: "Acharya Rameshwar",
+    astrologerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
+    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792572347/astroai_reels/uqa9wrwyv1mb3owt3vvq.mp4",
+    likes: 418,
+    commentsCount: 35,
+    tags: ["#GrahaDosh", "#VedicAstro"],
+    comments: [],
+  },
+  {
+    id: "reel-1792561807",
+    title: "💰 Ghar Me Dhan Vriddhi Ke Vastu Tips",
+    astrologerName: "Pandit Radheshyam Joshi",
+    astrologerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80",
+    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792561807/astroai_reels/ezqzdvbyocqya7jwuvqh.mp4",
+    likes: 580,
+    commentsCount: 42,
+    tags: ["#DhanVriddhi", "#VastuTips"],
+    comments: [],
+  },
+  {
+    id: "reel-1792561133",
+    title: "❤️ Kundli Me Vivah Yog Aur Prem Sambandh",
     astrologerName: "Dr. Ananya Mukherjee",
     astrologerAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4",
-    likes: 2480,
-    commentsCount: 142,
-    tags: ["#MoonSign", "#MentalPeace"],
-    comments: [
-      { id: "c3", userName: "Amit Kumar", text: "Mera Chandra 6th house me hai, kya ye sahi hai?", timeAgo: "1h ago" },
-    ],
+    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792561133/astroai_reels/lfosgpjbr1rsc0k1r2ca.mp4",
+    likes: 695,
+    commentsCount: 54,
+    tags: ["#VivahYog", "#KundliMilan"],
+    comments: [],
   },
   {
-    id: "3",
-    title: "💰 Ghar ki tijori is disha me rakhein, dhan yog banega!",
-    astrologerName: "Guruji Devendra",
-    astrologerAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-meditation-of-a-woman-in-nature-41585-large.mp4",
-    likes: 3190,
-    commentsCount: 215,
-    tags: ["#VastuTips", "#DhanYog"],
-    comments: [
-      { id: "c4", userName: "Sneha Patel", text: "North East me rakh sakte hain kya?", timeAgo: "30m ago" },
-    ],
-  },
-  {
-    id: "4",
-    title: "❤️ Kundli Milan me Nadi Dosha se darna band karein!",
-    astrologerName: "Maa Gayatri Devi",
-    astrologerAvatar: "https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=120&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-burning-candle-in-the-dark-42998-large.mp4",
-    likes: 4520,
-    commentsCount: 380,
-    tags: ["#KundliMilan", "#NadiDosha"],
-    comments: [
-      { id: "c5", userName: "Vikram Rathore", text: "Thank you maa ji, tension door ho gayi!", timeAgo: "3h ago" },
-    ],
+    id: "reel-1792485818",
+    title: "🪐 Shani Sade Sati Ke 3 Asarkari Upay",
+    astrologerName: "Acharya Vidyadhar Shastri",
+    astrologerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
+    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792485818/astroai_reels/dpv7hdnbdbgmysa3myfu.mp4",
+    likes: 890,
+    commentsCount: 67,
+    tags: ["#ShaniSadeSati", "#ShaniUpay"],
+    comments: [],
   },
 ];
 
 export default function AstroReelsSection() {
-  const [reels, setReels] = useState<Reel[]>([]);
+  const [reels, setReels] = useState<Reel[]>(FALLBACK_REAL_REELS);
   const [likedReels, setLikedReels] = useState<Record<string, boolean>>({});
   const [activeReelForComments, setActiveReelForComments] = useState<Reel | null>(null);
   const [newCommentText, setNewCommentText] = useState("");
   const [shareToast, setShareToast] = useState(false);
 
-  // Fetch live reels from backend API & Admin LocalStorage
+  // Fetch live reels from backend API & Admin LocalStorage (Preserving all eligible older and newer reels)
   const fetchReels = async () => {
     try {
       const deletedStr = localStorage.getItem("astroai_deleted_reels");
       const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
       const localAdminStr = localStorage.getItem("astroai_admin_reels");
 
-      let itemsToDisplay: any[] = [];
-      let hasAdminConfig = false;
+      let combined: any[] = [];
       if (localAdminStr !== null) {
         try {
           const parsed = JSON.parse(localAdminStr);
           if (Array.isArray(parsed)) {
-            itemsToDisplay = parsed;
-            hasAdminConfig = true;
+            combined = [...parsed];
           }
         } catch (e) {}
       }
 
+      // Fetch live reels from Render/MongoDB Atlas backend
       try {
         const liveReels = await reelsApi.getAll();
-        if (liveReels && Array.isArray(liveReels) && liveReels.length > 0) {
+        if (Array.isArray(liveReels) && liveReels.length > 0) {
           liveReels.forEach((lr: any) => {
-            const isDel = deletedList.includes(String(lr.id)) || deletedList.includes(lr.id);
-            const exists = itemsToDisplay.some(
-              (it) => String(it.id) === String(lr.id) || (lr.videoUrl && it.videoUrl === lr.videoUrl)
+            const isDel = deletedList.includes(String(lr.id)) || deletedList.includes(String(lr.reelId));
+            const exists = combined.some(
+              (it) =>
+                String(it.id) === String(lr.id) ||
+                String(it.reelId || "") === String(lr.id) ||
+                (lr.videoUrl && it.videoUrl === lr.videoUrl)
             );
-            if (!isDel && !exists && !hasAdminConfig) {
-              itemsToDisplay.push(lr);
+            if (!isDel && !exists) {
+              combined.push(lr);
             }
           });
         }
       } catch (e) {}
 
+      // Also merge fallback real Cloudinary dataset so older reels are always available
+      FALLBACK_REAL_REELS.forEach((fb) => {
+        const isDel = deletedList.includes(fb.id);
+        const exists = combined.some(
+          (it) => String(it.id) === fb.id || (fb.videoUrl && it.videoUrl === fb.videoUrl)
+        );
+        if (!isDel && !exists) {
+          combined.push(fb);
+        }
+      });
+
       // Filter out deleted items
-      const filtered = itemsToDisplay.filter(
-        (r) => !deletedList.includes(String(r.id)) && !deletedList.includes(r.id)
+      const filtered = combined.filter(
+        (r) => !deletedList.includes(String(r.id)) && !deletedList.includes(String(r.reelId))
       );
 
       if (filtered.length > 0) {
-        const formatted = filtered.map((lr: any, idx: number) => ({
-          id: String(lr.id || `reel-${idx}`),
+        const formatted: Reel[] = filtered.map((lr: any, idx: number) => ({
+          id: String(lr.id || lr.reelId || `reel-${idx}`),
           title: lr.title,
           astrologerName: lr.astrologerName || "AstroAI Creator",
           astrologerAvatar:
             lr.astrologerAvatar ||
-            reelsData[idx % reelsData.length]?.astrologerAvatar ||
+            FALLBACK_REAL_REELS[idx % FALLBACK_REAL_REELS.length]?.astrologerAvatar ||
             "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
           videoUrl: lr.videoUrl,
           likes: lr.likes || 1200,
           commentsCount: lr.commentsCount || 45,
-          tags: lr.tag ? [lr.tag] : ["#VedicTips"],
+          tags: Array.isArray(lr.tags) && lr.tags.length > 0 ? lr.tags : lr.tag ? [lr.tag] : ["#VedicTips"],
           comments: lr.comments || [],
         }));
         setReels(formatted);

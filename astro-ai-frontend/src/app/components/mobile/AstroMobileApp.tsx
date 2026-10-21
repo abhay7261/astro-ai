@@ -14,23 +14,25 @@ export default function AstroMobileApp() {
   const [screen, setScreen] = useState<ScreenState>("loading");
 
   useEffect(() => {
-    // Check persistent storage on mount
+    // Explicit Login Enforcement:
+    // Opening the app must NOT automatically log the user in.
+    // An active session is only preserved if explicitly authenticated in this tab's sessionStorage.
     try {
+      const activeSession = sessionStorage.getItem("astroai_session_token");
       const isCompleted = localStorage.getItem("astroai_onboarding_completed") === "true";
-      const savedUserStr = localStorage.getItem("astroai_auth_user");
 
-      if (savedUserStr) {
-        // Returning authenticated user -> Redirect to clean mobile dashboard /home
+      if (activeSession) {
+        // Active explicit session within current browser session
         router.replace("/home");
       } else if (!isCompleted) {
-        // First-time user -> Start with Onboarding
+        // First-time user onboarding
         setScreen("onboarding");
       } else {
-        // Returning user not logged in -> Go straight to Auth
+        // Require explicit login every time app is opened/reopened
         setScreen("auth");
       }
     } catch {
-      setScreen("onboarding");
+      setScreen("auth");
     }
   }, [router]);
 
@@ -41,7 +43,6 @@ export default function AstroMobileApp() {
     } catch (e) {
       console.warn("Storage error", e);
     }
-    // Transition to Splash Screen
     setScreen("splash");
   };
 
@@ -50,12 +51,15 @@ export default function AstroMobileApp() {
     setScreen("auth");
   };
 
-  // Auth success handler: navigate to clean dedicated home page
-  const handleAuthenticated = (user: AuthUser) => {
+  // Auth success handler: session explicitly established
+  const handleAuthenticated = (user: AuthUser, token?: string) => {
     try {
+      const sessionToken = token || `astro_session_${Date.now()}`;
+      sessionStorage.setItem("astroai_session_token", sessionToken);
+      sessionStorage.setItem("astroai_session_user", JSON.stringify(user));
       localStorage.setItem("astroai_auth_user", JSON.stringify(user));
     } catch (e) {
-      console.warn("Storage error", e);
+      console.warn("Session storage error", e);
     }
     router.replace("/home");
   };
@@ -63,6 +67,8 @@ export default function AstroMobileApp() {
   // Reset entire flow for reviewer/developer testing
   const handleResetFlow = () => {
     try {
+      sessionStorage.removeItem("astroai_session_token");
+      sessionStorage.removeItem("astroai_session_user");
       localStorage.removeItem("astroai_onboarding_completed");
       localStorage.removeItem("astroai_auth_user");
     } catch (e) {
@@ -111,7 +117,7 @@ export default function AstroMobileApp() {
         <button
           onClick={handleResetFlow}
           title="Reset onboarding & logout to test first-time user flow from start"
-          className="inline-flex items-center gap-1 text-[10px] text-terracotta bg-white px-2 py-0.5 rounded-full font-bold hover:bg-peach transition-colors shadow-sm"
+          className="inline-flex items-center gap-1 text-[10px] text-terracotta bg-white px-2 py-0.5 rounded-full font-bold hover:bg-peach transition-colors shadow-sm cursor-pointer"
         >
           <RotateCcw className="w-2.5 h-2.5" />
           Reset Demo

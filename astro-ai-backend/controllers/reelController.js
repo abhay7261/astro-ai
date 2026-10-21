@@ -8,6 +8,14 @@ const storage = multer.memoryStorage();
 export const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB max video size
+  fileFilter: (req, file, cb) => {
+    const allowed = ["video/mp4", "video/webm", "video/quicktime", "video/x-m4v"];
+    if (allowed.includes(file.mimetype) || file.originalname.match(/\.(mp4|webm|mov|m4v)$/i)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only MP4, WebM, and MOV video formats are allowed."));
+    }
+  },
 });
 
 // Configure Cloudinary if credentials provided
@@ -30,9 +38,9 @@ export const uploadVideoToCloudinary = (req, res) => {
 
   const isConfigured = configureCloudinary();
   if (!isConfigured) {
-    return res.status(400).json({
+    return res.status(500).json({
       success: false,
-      message: "Cloudinary credentials missing in .env. Kripya CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY aur CLOUDINARY_API_SECRET configure karein.",
+      message: "Cloudinary credentials missing in server environment.",
     });
   }
 
@@ -65,46 +73,78 @@ export const uploadVideoToCloudinary = (req, res) => {
   uploadStream.end(req.file.buffer);
 };
 
-export const getAllReels = (req, res) => {
-  const reels = ReelModel.find();
-  res.json({ success: true, count: reels.length, reels });
-};
-
-export const publishReel = (req, res) => {
-  const { title, astrologerName, videoUrl, tag, seriesName, seriesPart } = req.body;
-
-  if (!title) {
-    return res.status(400).json({ success: false, message: "Title is required" });
+export const getAllReels = async (req, res) => {
+  try {
+    const { page = 1, limit = 50, series } = req.query;
+    const query = series ? { seriesName: series } : {};
+    const reels = await ReelModel.find(query, { page, limit });
+    res.json({
+      success: true,
+      count: reels.length,
+      page: Number(page),
+      limit: Number(limit),
+      reels,
+    });
+  } catch (err) {
+    console.error("⚠️ [Reels API] getAllReels error:", err);
+    res.status(500).json({ success: false, message: "Failed to retrieve reels." });
   }
-
-  const newReel = ReelModel.create({
-    title,
-    astrologerName: astrologerName || "Vedic Astrologer",
-    videoUrl: videoUrl || "",
-    tag: tag ? (tag.startsWith("#") ? tag : `#${tag}`) : "#DailyUpay",
-    seriesName: seriesName ? seriesName.trim() : "",
-    seriesPart: seriesPart ? Number(seriesPart) || 1 : null,
-  });
-
-  res.status(201).json({ success: true, message: "Reel published successfully!", reel: newReel });
 };
 
-export const deleteReel = (req, res) => {
-  const { id } = req.params;
-  ReelModel.deleteById(id);
-  res.json({ success: true, message: `Reel ${id} deleted successfully.` });
+export const publishReel = async (req, res) => {
+  try {
+    const { title, astrologerName, videoUrl, tag, seriesName, seriesPart, description } = req.body;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: "Title is required" });
+    }
+
+    const newReel = await ReelModel.create({
+      id: req.body.id || `reel-${Date.now()}`,
+      title: title.trim(),
+      description: description ? description.trim() : "Daily astrological guidance & Vedic insights.",
+      astrologerName: astrologerName || "AstroAI Creator",
+      videoUrl: videoUrl || "",
+      tag: tag ? (tag.startsWith("#") ? tag : `#${tag}`) : "#DailyUpay",
+      seriesName: seriesName ? seriesName.trim() : "",
+      seriesPart: seriesPart ? Number(seriesPart) || 1 : null,
+      createdAt: new Date(),
+    });
+
+    res.status(201).json({ success: true, message: "Reel published successfully!", reel: newReel });
+  } catch (err) {
+    console.error("⚠️ [Reels API] publishReel error:", err);
+    res.status(500).json({ success: false, message: "Failed to publish reel." });
+  }
 };
 
-export const deleteSeries = (req, res) => {
-  const { seriesName } = req.params;
-  const decoded = decodeURIComponent(seriesName);
-  ReelModel.deleteBySeries(decoded);
-  res.json({ success: true, message: `Series "${decoded}" deleted successfully.` });
+export const deleteReel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await ReelModel.deleteById(id);
+    res.json({ success: true, message: `Reel ${id} deleted successfully.` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
-export const likeReel = (req, res) => {
-  const { id } = req.params;
-  const reel = ReelModel.like(id);
-  if (reel) return res.json({ success: true, likes: reel.likes });
-  res.status(404).json({ success: false, message: "Reel not found" });
+export const deleteSeries = async (req, res) => {
+  try {
+    const { seriesName } = req.params;
+    const decoded = decodeURIComponent(seriesName);
+    await ReelModel.deleteBySeries(decoded);
+    res.json({ success: true, message: `Series "${decoded}" deleted successfully.` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const likeReel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await ReelModel.like(id);
+    res.json({ success: true, likes: result.likes });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };

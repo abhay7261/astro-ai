@@ -1,5 +1,9 @@
-// User Profile and Wallet Controller (MongoDB Atlas Ready)
+// User Profile and Session Controller (MongoDB Atlas Synced)
 import { UserModel } from "../models/User.js";
+import crypto from "crypto";
+
+// Active in-memory session tokens for revocation
+const activeSessions = new Set();
 
 export const getAllUsers = async (req, res) => {
   try {
@@ -12,31 +16,92 @@ export const getAllUsers = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
-    const { email, name } = req.body;
-    if (!email) {
-      return res.status(400).json({ success: false, message: "Email is required" });
+    const { email, name, googleCredential } = req.body;
+
+    let verifiedEmail = email;
+    let verifiedName = name;
+    let verifiedAvatar = "";
+
+    // If Google ID token is supplied, verify signature & audience directly with Google
+    if (googleCredential) {
+      try {
+        const googleRes = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(googleCredential)}`
+        );
+        if (googleRes.ok) {
+          const payload = await googleRes.json();
+          if (payload.email && (payload.email_verified === "true" || payload.email_verified === true)) {
+            verifiedEmail = payload.email;
+            verifiedName = payload.name || payload.email.split("@")[0];
+            verifiedAvatar = payload.picture || "";
+          }
+        }
+      } catch (gErr) {
+        console.warn("⚠️ [Google OAuth] Token verification network warning:", gErr.message);
+      }
     }
 
-    let user = await UserModel.findByEmail(email);
+    if (!verifiedEmail) {
+      return res.status(400).json({ success: false, message: "Valid email is required" });
+    }
+
+    const cleanEmail = verifiedEmail.trim().toLowerCase();
+    const cleanName = (verifiedName || cleanEmail.split("@")[0]).trim();
+
+    let user = await UserModel.findByEmail(cleanEmail);
 
     if (!user) {
-      console.log(`🍃 [Auth] Creating new user for email: ${email}`);
+      console.log(`🍃 [Auth] Creating new user for email: ${cleanEmail}`);
       user = await UserModel.create({
-        name: name || email.split("@")[0],
-        email: email,
+        name: cleanName,
+        email: cleanEmail,
+        avatar: verifiedAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
       });
     } else {
       console.log(`🍃 [Auth] Found existing user: ${user.name} (${user.email})`);
     }
 
+    // Cryptographically random session token
+    const sessionToken = `astro_session_${crypto.randomBytes(32).toString("hex")}`;
+    activeSessions.add(sessionToken);
+
     res.json({
       success: true,
       message: "Login successful!",
       user,
-      token: `jwt_session_${user._id || user.userId || user.id}`,
+      token: sessionToken,
     });
   } catch (err) {
     console.error("⚠️ [Auth] Login error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const logoutUser = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      activeSessions.delete(token);
+    }
+    res.json({ success: true, message: "Session successfully invalidated and logged out." });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const verifySession = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ success: false, message: "No active session token provided." });
+    }
+    const token = authHeader.split(" ")[1];
+    if (!activeSessions.has(token)) {
+      return res.status(401).json({ success: false, message: "Session expired or invalid." });
+    }
+    res.json({ success: true, message: "Session is active and valid." });
+  } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };

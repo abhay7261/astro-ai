@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import MobileAppLayout from "../components/mobile/MobileAppLayout";
 import { AuthUser } from "../components/mobile/AuthScreen";
+import { usersApi } from "../services/apiClient";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -24,8 +25,12 @@ export default function ProfilePage() {
     }
   }, []);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     try {
+      const token = sessionStorage.getItem("astroai_session_token") || undefined;
+      if (token) usersApi.logout(token).catch(() => {});
+      sessionStorage.removeItem("astroai_session_token");
+      sessionStorage.removeItem("astroai_session_user");
       localStorage.removeItem("astroai_auth_user");
     } catch (e) {
       console.warn("Storage error", e);

@@ -148,10 +148,16 @@ export const usersApi = {
     const data = await apiRequest<{ success: boolean; users: any[] }>("/users");
     return data?.users || null;
   },
-  login: async (email: string, name?: string) => {
+  login: async (email: string, name?: string, googleCredential?: string) => {
     return await apiRequest<{ success: boolean; user: any; token: string }>("/users/login", {
       method: "POST",
-      body: JSON.stringify({ email, name }),
+      body: JSON.stringify({ email, name, googleCredential }),
+    });
+  },
+  logout: async (token?: string) => {
+    return await apiRequest<{ success: boolean; message: string }>("/users/logout", {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
   },
   addBonus: async (id: string, amount: number) => {
