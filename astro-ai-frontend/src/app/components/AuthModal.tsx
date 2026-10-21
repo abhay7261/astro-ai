@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { X, Sparkles, Shield, CheckCircle2 } from "lucide-react";
-
 import { usersApi } from "../services/apiClient";
 
 export interface UserProfile {
@@ -21,16 +20,16 @@ interface AuthModalProps {
 export default function AuthModal({ onClose, onLoginSuccess }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
 
-  const handleGoogleLogin = async () => {
+  const handleQuickLogin = async () => {
     setLoading(true);
 
     try {
-      const res = await usersApi.login("rahul.verma@gmail.com", "Rahul Verma");
+      const res = await usersApi.login("seeker@astroai.com", "Seeker User");
       setLoading(false);
       const user = res?.user;
       onLoginSuccess({
-        name: user?.name || "Rahul Verma",
-        email: user?.email || "rahul.verma@gmail.com",
+        name: user?.name || "Seeker User",
+        email: user?.email || "seeker@astroai.com",
         avatar: user?.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
         isVip: user?.isVIP ?? true,
         savedKundlisCount: 2,
@@ -39,8 +38,8 @@ export default function AuthModal({ onClose, onLoginSuccess }: AuthModalProps) {
     } catch {
       setLoading(false);
       onLoginSuccess({
-        name: "Rahul Verma",
-        email: "rahul.verma@gmail.com",
+        name: "Seeker User",
+        email: "seeker@astroai.com",
         avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80",
         isVip: true,
         savedKundlisCount: 2,
@@ -90,35 +89,18 @@ export default function AuthModal({ onClose, onLoginSuccess }: AuthModalProps) {
           </div>
         </div>
 
-        {/* Google Sign In Button */}
+        {/* Quick Sign In Button */}
         <button
-          onClick={handleGoogleLogin}
+          onClick={handleQuickLogin}
           disabled={loading}
-          className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-zinc-50 border-2 border-peach shadow-md flex items-center justify-center gap-3 text-sm font-semibold text-espresso transition-all hover:border-terracotta/40 group active:scale-[0.99]"
+          className="w-full py-3.5 px-4 rounded-2xl bg-terracotta hover:bg-terracotta-hover text-white shadow-md flex items-center justify-center gap-3 text-sm font-semibold transition-all active:scale-[0.99]"
         >
           {loading ? (
-            <div className="w-5 h-5 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-              />
-            </svg>
+            <Sparkles className="w-5 h-5" />
           )}
-          <span>{loading ? "Signing in with Google..." : "Continue with Google"}</span>
+          <span>{loading ? "Signing in..." : "Continue to AstroAI"}</span>
         </button>
 
         {/* Security Footer */}
