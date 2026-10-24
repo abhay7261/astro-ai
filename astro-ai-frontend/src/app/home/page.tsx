@@ -20,9 +20,6 @@ import { astrologersApi } from "../services/apiClient";
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState("");
-  const [nameToast, setNameToast] = useState(false);
   const [selectedAstroForChat, setSelectedAstroForChat] = useState<{
     id: string;
     name: string;
@@ -76,37 +73,11 @@ export default function HomePage() {
       if (saved) {
         const parsed = JSON.parse(saved);
         setUser(parsed);
-        setNameInput(parsed.name || "");
       }
     } catch (e) {
       console.warn("Storage error", e);
     }
   }, []);
-
-  // Save updated custom display name
-  const handleSaveName = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!nameInput.trim()) return;
-
-    const trimmed = nameInput.trim();
-    const updatedUser = {
-      ...(user || { id: "user_1", email: "seeker@astroai.com" }),
-      name: trimmed,
-    };
-
-    setUser(updatedUser);
-    localStorage.setItem("astroai_auth_user", JSON.stringify(updatedUser));
-    try {
-      sessionStorage.setItem("astroai_session_user", JSON.stringify(updatedUser));
-    } catch (e) {}
-    setIsEditingName(false);
-
-    // Broadcast update across app header and layout
-    window.dispatchEvent(new Event("astroai_user_updated"));
-
-    setNameToast(true);
-    setTimeout(() => setNameToast(false), 2500);
-  };
 
   // Featured Astrologers State (Synced with Admin & Backend API)
   const [featuredAstrologers, setFeaturedAstrologers] = useState<any[]>([]);
@@ -177,15 +148,7 @@ export default function HomePage() {
     <MobileAppLayout>
       <div className="space-y-4 sm:space-y-5 animate-in fade-in duration-300">
         
-        {/* Name Updated Toast Notification */}
-        {nameToast && (
-          <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-espresso text-amber-200 text-xs font-semibold px-4 py-2 rounded-full shadow-2xl border border-amber-400/40 backdrop-blur-md animate-in fade-in slide-in-from-top-2 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Aapka naam safalta-poorvak update ho gaya! ✨</span>
-          </div>
-        )}
-
-        {/* 1. Dynamic Hero Banner Scroller (Animated Vedic Chakra, Dhan Yog, Graha Shanti & Admin Banners) */}
+        {/* 1. Dynamic Hero Banner Scroller (Pure Animated Visuals - Zero Text Clutter) */}
         <HeroBannerSlider
           user={user}
           onOpenAuth={(featureName, callback) => {
@@ -194,12 +157,6 @@ export default function HomePage() {
                 detail: { featureName, callback },
               })
             );
-          }}
-          onUserUpdate={() => {
-            try {
-              const saved = localStorage.getItem("astroai_auth_user");
-              if (saved) setUser(JSON.parse(saved));
-            } catch {}
           }}
         />
 

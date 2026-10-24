@@ -2452,30 +2452,16 @@ export default function AdminDashboard() {
                     <label className="block text-[10px] font-bold text-espresso/60 uppercase tracking-wider mb-1.5">
                       Live Banner Card Preview
                     </label>
-                    <div className={`p-4 rounded-2xl bg-gradient-to-br ${newBannerGradient} border-2 border-amber-300/80 shadow-sm relative overflow-hidden min-h-[140px] flex flex-col justify-between transition-all`}>
-                      {bannerPreview && (
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 w-24 h-24 rounded-xl overflow-hidden border border-white shadow-sm">
-                          <img src={bannerPreview} alt="Preview" className="w-full h-full object-cover" />
+                    <div className={`p-1 rounded-2xl bg-gradient-to-br ${newBannerGradient} border-2 border-amber-300/80 shadow-sm relative overflow-hidden h-[150px] flex items-center justify-center transition-all`}>
+                      {bannerPreview ? (
+                        <img src={bannerPreview} alt="Preview" className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-4">
+                          <Sparkles className="w-8 h-8 text-amber-500 animate-pulse mb-1" />
+                          <p className="text-xs font-serif font-bold text-espresso">{newBannerTitle || "Animated Visual Card"}</p>
+                          <p className="text-[10px] text-espresso/60 mt-0.5">Upload GIF or animated banner image to display full-bleed on the slider</p>
                         </div>
                       )}
-                      <div>
-                        <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-terracotta to-amber-600 text-white text-[9px] font-extrabold uppercase mb-1.5 shadow-xs">
-                          <Sparkles className="w-2.5 h-2.5" />
-                          <span>{newBannerBadge || "SPECIAL ASTRO INSIGHT"}</span>
-                        </div>
-                        <h4 className="font-serif font-bold text-sm text-espresso line-clamp-1 max-w-[70%]">
-                          {newBannerTitle || "Your Banner Headline"}
-                        </h4>
-                        <p className="text-[11px] text-espresso/75 mt-0.5 line-clamp-2 max-w-[70%]">
-                          {newBannerSubtitle || "Add a catchy description explaining this special astrology update or remedy..."}
-                        </p>
-                      </div>
-                      <div className="mt-2.5">
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-gradient-to-r from-terracotta to-amber-600 text-white text-[10px] font-bold shadow-xs">
-                          <span>{newBannerCtaText || "Explore Now"}</span>
-                          <ArrowRight className="w-2.5 h-2.5" />
-                        </span>
-                      </div>
                     </div>
                   </div>
 
