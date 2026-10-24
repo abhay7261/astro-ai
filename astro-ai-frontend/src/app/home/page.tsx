@@ -14,6 +14,7 @@ import { AuthUser } from "../components/mobile/AuthScreen";
 import AstroChatModal from "../components/AstroChatModal";
 import CosmicOrbAnimation from "../components/mobile/CosmicOrbAnimation";
 import VedicAstrolabeChakra from "../components/mobile/VedicAstrolabeChakra";
+import HeroBannerSlider from "../components/mobile/HeroBannerSlider";
 import { astrologersApi } from "../services/apiClient";
 
 export default function HomePage() {
@@ -184,101 +185,23 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 1. Welcome Greeting Banner with Editable Display Name */}
-        <section className="bg-gradient-to-br from-[#FFF9F2] via-[#FFEEDC] to-[#FFDFC8] p-5 sm:p-6 rounded-3xl border-2 border-amber-300/70 shadow-lg shadow-amber-950/5 relative overflow-hidden">
-          {/* Animated Ambient Vedic Astrolabe Kalachakra (Dual Counter-Rotating Zodiac & Lotus Rings + OM Sun Core) */}
-          <div className="absolute -right-12 -bottom-12 sm:-right-8 sm:-bottom-8 pointer-events-none select-none opacity-80 sm:opacity-90">
-            <VedicAstrolabeChakra />
-          </div>
-
-          <div className="relative z-10">
-            {/* Shimmering Badge */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-terracotta to-amber-600 text-white text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wide mb-2 shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
-              Daily Planetary Alignment
-            </div>
-            
-            {/* User Greeting with Editable Name Control */}
-            {!isEditingName ? (
-              <div className="flex items-center flex-wrap gap-2">
-                <h1 className="text-xl sm:text-2xl font-serif font-bold text-espresso leading-snug">
-                  Namaste,{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-terracotta via-[#C84524] to-amber-600 font-extrabold">
-                    {user?.name || "Seeker"}
-                  </span>{" "}
-                  🙏
-                </h1>
-
-                {/* Edit Name Button */}
-                <button
-                  onClick={() => {
-                    try {
-                      const sessionToken = sessionStorage.getItem("astroai_session_token");
-                      if (!sessionToken) {
-                        window.dispatchEvent(
-                          new CustomEvent("astroai_open_auth", {
-                            detail: {
-                              featureName: "Profile & Name Settings",
-                            },
-                          })
-                        );
-                        return;
-                      }
-                    } catch {}
-                    setNameInput(user?.name || "");
-                    setIsEditingName(true);
-                  }}
-                  title="Click to change your display name"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/90 hover:bg-white text-terracotta border border-amber-300/80 text-[10px] font-bold shadow-xs active:scale-95 transition-all"
-                >
-                  <Pencil className="w-2.5 h-2.5" />
-                  <span>Change Name</span>
-                </button>
-              </div>
-            ) : (
-              /* Inline Editable Form */
-              <form onSubmit={handleSaveName} className="flex items-center gap-2 mt-1 mb-1">
-                <input
-                  type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  placeholder="Enter your real name..."
-                  autoFocus
-                  className="bg-white/95 border-2 border-amber-400 rounded-xl px-3 py-1.5 text-xs font-bold text-espresso focus:outline-none shadow-xs max-w-[200px]"
-                />
-                <button
-                  type="submit"
-                  className="px-3 py-1.5 rounded-xl bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold shadow-xs active:scale-95 flex items-center gap-1"
-                >
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>Save</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditingName(false)}
-                  className="px-2 py-1.5 rounded-xl bg-white/80 hover:bg-white text-espresso/70 text-xs font-semibold active:scale-95"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </form>
-            )}
-            
-            <p className="text-xs sm:text-sm text-espresso/80 mt-1 max-w-md leading-relaxed font-medium">
-              Jupiter’s positive transit in your chart brings auspicious opportunities today. Explore your cosmic destiny below.
-            </p>
-
-            {/* Micro Astrological Status Indicators */}
-            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-peach/80 text-[11px]">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/90 border border-amber-300/70 text-terracotta font-bold shadow-xs">
-                <Sun className="w-3 h-3 text-amber-500 animate-spin-slow" />
-                Aura: 94% Auspicious
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/90 border border-amber-300/70 text-espresso font-bold shadow-xs">
-                ⏰ Abhijit Muhurat: 11:45 AM
-              </span>
-            </div>
-          </div>
-        </section>
+        {/* 1. Dynamic Hero Banner Scroller (Animated Vedic Chakra, Dhan Yog, Graha Shanti & Admin Banners) */}
+        <HeroBannerSlider
+          user={user}
+          onOpenAuth={(featureName, callback) => {
+            window.dispatchEvent(
+              new CustomEvent("astroai_open_auth", {
+                detail: { featureName, callback },
+              })
+            );
+          }}
+          onUserUpdate={() => {
+            try {
+              const saved = localStorage.getItem("astroai_auth_user");
+              if (saved) setUser(JSON.parse(saved));
+            } catch {}
+          }}
+        />
 
         {/* 2. Interactive High-Impact Cosmic Orb Animation */}
         <CosmicOrbAnimation />

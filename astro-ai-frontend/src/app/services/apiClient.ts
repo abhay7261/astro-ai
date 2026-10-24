@@ -241,3 +241,44 @@ export const aiBotsApi = {
   create: adminApi.addAIBot,
   delete: adminApi.deleteAIBot,
 };
+
+// 7. Hero Banners & Slider API
+export interface BannerItem {
+  id: string;
+  bannerId: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  imageUrl?: string;
+  type?: string;
+  bgGradient?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  order?: number;
+  isActive?: boolean;
+  isSystemDefault?: boolean;
+}
+
+export const bannersApi = {
+  getAll: async () => {
+    const data = await apiRequest<{ success: boolean; banners: BannerItem[] }>("/banners");
+    return data?.banners || null;
+  },
+  create: async (bannerData: Partial<BannerItem>) => {
+    return await apiRequest<{ success: boolean; banner: BannerItem; message: string }>("/banners", {
+      method: "POST",
+      body: JSON.stringify(bannerData),
+    });
+  },
+  toggleStatus: async (id: string, isActive: boolean) => {
+    return await apiRequest<{ success: boolean; banner: BannerItem }>(`/banners/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ isActive }),
+    });
+  },
+  delete: async (id: string) => {
+    return await apiRequest<{ success: boolean; message: string }>(`/banners/${id}`, {
+      method: "DELETE",
+    });
+  },
+};

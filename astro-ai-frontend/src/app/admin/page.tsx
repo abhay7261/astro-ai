@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   Video, UploadCloud, Trash2, Heart, MessageCircle, Eye, 
-  TrendingUp, Users, Crown, ArrowLeft, CheckCircle2, Sparkles, Plus,
+  TrendingUp, Users, Crown, ArrowLeft, ArrowRight, CheckCircle2, Sparkles, Plus,
   Bot, ShieldAlert, DollarSign, Bell, UserX, UserCheck, ToggleLeft, ToggleRight,
   Settings, Search, Star, Edit3, ShieldCheck, Lock, Unlock, KeyRound, AlertTriangle
 } from "lucide-react";
 import { astrologersData, Astrologer } from "../components/AstrologerSection";
-import { astrologersApi, aiBotsApi, subscriptionsApi, reelsApi, usersApi, adminApi } from "../services/apiClient";
+import { astrologersApi, aiBotsApi, subscriptionsApi, reelsApi, usersApi, adminApi, bannersApi, BannerItem } from "../services/apiClient";
 
 // Types
 interface AdminReel {
@@ -66,7 +66,7 @@ export default function AdminDashboard() {
   const [showChangePinModal, setShowChangePinModal] = useState(false);
   const [newPin, setNewPin] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"reels" | "astrologers" | "ai-bots" | "users" | "monetization" | "broadcast">("astrologers");
+  const [activeTab, setActiveTab] = useState<"reels" | "astrologers" | "ai-bots" | "users" | "monetization" | "broadcast" | "banners">("astrologers");
 
   // ================= 1. REELS STATE =================
   const [reels, setReels] = useState<AdminReel[]>([]);
@@ -208,6 +208,20 @@ export default function AdminDashboard() {
   const [broadcastBody, setBroadcastBody] = useState("");
   const [notificationSent, setNotificationSent] = useState(false);
 
+  // ================= 7. HERO BANNERS & SLIDER STATE =================
+  const [adminBanners, setAdminBanners] = useState<BannerItem[]>([]);
+  const [newBannerTitle, setNewBannerTitle] = useState("");
+  const [newBannerSubtitle, setNewBannerSubtitle] = useState("");
+  const [newBannerBadge, setNewBannerBadge] = useState("SPECIAL ASTRO INSIGHT");
+  const [newBannerImageUrl, setNewBannerImageUrl] = useState("");
+  const [bannerPreview, setBannerPreview] = useState<string>("");
+  const [newBannerCtaText, setNewBannerCtaText] = useState("Explore Now");
+  const [newBannerCtaLink, setNewBannerCtaLink] = useState("/chat");
+  const [newBannerGradient, setNewBannerGradient] = useState("from-[#FFF9F2] via-[#FFEEDC] to-[#FFDFC8]");
+  const [isSubmittingBanner, setIsSubmittingBanner] = useState(false);
+  const [bannerUploadSuccess, setBannerUploadSuccess] = useState(false);
+  const [bannerError, setBannerError] = useState("");
+
   // Common UI State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -283,6 +297,14 @@ export default function AdminDashboard() {
       } else {
         setReels(DEFAULT_ADMIN_REELS.filter((r) => !deletedList.includes(String(r.id))));
       }
+
+      const savedBannersLocal = localStorage.getItem("astroai_hero_banners");
+      if (savedBannersLocal) {
+        try {
+          const parsed = JSON.parse(savedBannersLocal);
+          if (Array.isArray(parsed)) setAdminBanners(parsed);
+        } catch (e) {}
+      }
     } catch (e) {
       console.warn("Storage load error", e);
     }
@@ -290,12 +312,13 @@ export default function AdminDashboard() {
     // Fetch live data from backend
     const loadBackendData = async () => {
       try {
-        const [liveAstros, liveConfig, liveBots, liveReels, liveUsers] = await Promise.allSettled([
+        const [liveAstros, liveConfig, liveBots, liveReels, liveUsers, liveBanners] = await Promise.allSettled([
           astrologersApi.getAll(),
           subscriptionsApi.getConfig(),
           adminApi.getAIBots(),
           reelsApi.getAll(),
           usersApi.getAll(),
+          bannersApi.getAll(),
         ]);
 
         if (liveAstros.status === "fulfilled" && liveAstros.value) {
@@ -367,6 +390,11 @@ export default function AdminDashboard() {
           setUsersList(liveUsers.value);
           localStorage.setItem("astroai_users_list", JSON.stringify(liveUsers.value));
         }
+
+        if (liveBanners.status === "fulfilled" && liveBanners.value) {
+          setAdminBanners(liveBanners.value);
+          localStorage.setItem("astroai_hero_banners", JSON.stringify(liveBanners.value));
+        }
       } catch (err) {
         console.warn("Live backend sync error (using local cache)", err);
       }
@@ -374,6 +402,117 @@ export default function AdminDashboard() {
 
     loadBackendData();
   }, []);
+
+  // Save Banners & Broadcast
+  const saveBanners = (updated: BannerItem[]) => {
+    setAdminBanners(updated);
+    localStorage.setItem("astroai_hero_banners", JSON.stringify(updated));
+    window.dispatchEvent(new Event("astroai_banners_updated"));
+  };
+
+  const handleBannerFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      setBannerError("Image size must be under 8MB");
+      return;
+    }
+
+    setBannerError("");
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setBannerPreview(result);
+      setNewBannerImageUrl(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCreateBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBannerTitle.trim()) {
+      setBannerError("Please enter a title for the banner.");
+      return;
+    }
+
+    setIsSubmittingBanner(true);
+    setBannerError("");
+
+    const newBannerPayload: Partial<BannerItem> = {
+      title: newBannerTitle.trim(),
+      subtitle: newBannerSubtitle.trim(),
+      badge: newBannerBadge.trim() || "SPECIAL ASTRO INSIGHT",
+      imageUrl: newBannerImageUrl || bannerPreview,
+      bgGradient: newBannerGradient,
+      ctaText: newBannerCtaText.trim() || "Explore Now",
+      ctaLink: newBannerCtaLink.trim() || "/chat",
+      isActive: true,
+      order: adminBanners.length + 1,
+    };
+
+    try {
+      const res = await bannersApi.create(newBannerPayload);
+      setIsSubmittingBanner(false);
+
+      const createdItem: BannerItem = res?.banner || {
+        id: `banner-${Date.now()}`,
+        bannerId: `banner-${Date.now()}`,
+        title: newBannerTitle.trim(),
+        subtitle: newBannerSubtitle.trim(),
+        badge: newBannerBadge.trim() || "SPECIAL ASTRO INSIGHT",
+        imageUrl: newBannerImageUrl || bannerPreview,
+        bgGradient: newBannerGradient,
+        ctaText: newBannerCtaText.trim() || "Explore Now",
+        ctaLink: newBannerCtaLink.trim() || "/chat",
+        isActive: true,
+        order: adminBanners.length + 1,
+      };
+
+      const updated = [...adminBanners, createdItem];
+      saveBanners(updated);
+
+      setBannerUploadSuccess(true);
+      setTimeout(() => setBannerUploadSuccess(false), 3000);
+      showToast(`✨ Hero Banner "${newBannerTitle}" published successfully!`);
+
+      // Reset form
+      setNewBannerTitle("");
+      setNewBannerSubtitle("");
+      setNewBannerBadge("SPECIAL ASTRO INSIGHT");
+      setNewBannerImageUrl("");
+      setBannerPreview("");
+      setNewBannerCtaText("Explore Now");
+      setNewBannerCtaLink("/chat");
+    } catch (err: any) {
+      setIsSubmittingBanner(false);
+      setBannerError(err?.message || "Failed to save banner.");
+    }
+  };
+
+  const handleToggleBanner = async (bannerId: string) => {
+    const target = adminBanners.find((b) => b.id === bannerId || b.bannerId === bannerId);
+    if (!target) return;
+
+    const nextActive = !target.isActive;
+    const updated = adminBanners.map((b) =>
+      b.id === bannerId || b.bannerId === bannerId ? { ...b, isActive: nextActive } : b
+    );
+    saveBanners(updated);
+
+    bannersApi.toggleStatus(bannerId, nextActive).catch(() => {});
+    showToast(`Banner ${nextActive ? "activated" : "deactivated"} successfully.`);
+  };
+
+  const handleDeleteBanner = async (bannerId: string, title: string) => {
+    if (!confirm(`Are you sure you want to remove banner "${title}" from the slider?`)) return;
+
+    const updated = adminBanners.filter((b) => b.id !== bannerId && b.bannerId !== bannerId);
+    saveBanners(updated);
+
+    bannersApi.delete(bannerId).catch(() => {});
+    showToast(`Banner "${title}" removed.`);
+  };
 
   // Save Astrologers & Broadcast
   const saveAstrologers = (updated: Astrologer[]) => {
@@ -1107,6 +1246,18 @@ export default function AdminDashboard() {
           >
             <span>📢</span>
             <span>Notice & Push</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("banners")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeTab === "banners"
+                ? "bg-terracotta text-white shadow-xs"
+                : "text-espresso/70 hover:bg-peach/50"
+            }`}
+          >
+            <span>🖼️</span>
+            <span>Hero Slider Banners ({adminBanners.length})</span>
           </button>
 
         </div>
@@ -2241,6 +2392,350 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ================= 7. HERO BANNERS & SLIDER MANAGEMENT ================= */}
+        {activeTab === "banners" && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Header info card */}
+            <div className="bg-gradient-to-r from-amber-500 via-terracotta to-amber-700 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="relative z-10">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-black uppercase tracking-wider mb-2">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>HOMEPAGE HERO SLIDER CMS</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-serif font-bold">Hero Banners & Animated Slider</h2>
+                <p className="text-xs text-white/90 mt-1 max-w-xl leading-relaxed">
+                  Upload custom promotional banners, festive astrology offers, or animated cards for the top homepage carousel. Real-time sync with MongoDB Atlas.
+                </p>
+              </div>
+
+              <div className="relative z-10 flex items-center gap-2 self-start sm:self-auto">
+                <div className="px-4 py-2 rounded-2xl bg-black/25 backdrop-blur-md border border-white/20 text-center">
+                  <p className="text-lg font-bold">{adminBanners.length}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/75 font-semibold">Total Cards</p>
+                </div>
+                <div className="px-4 py-2 rounded-2xl bg-black/25 backdrop-blur-md border border-white/20 text-center">
+                  <p className="text-lg font-bold text-emerald-300">{adminBanners.filter(b => b.isActive !== false).length}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/75 font-semibold">Live in Slider</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Error & Success Messages */}
+            {bannerError && (
+              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-800 text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span>{bannerError}</span>
+              </div>
+            )}
+
+            {bannerUploadSuccess && (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>New Hero Banner published live to homepage scroller! ✨</span>
+              </div>
+            )}
+
+            {/* Main 2-Column Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              {/* LEFT COLUMN: Add New Banner Form & Live Preview */}
+              <div className="lg:col-span-5 space-y-4">
+                <div className="bg-white p-5 sm:p-6 rounded-3xl border border-peach shadow-sm">
+                  <h3 className="font-serif font-bold text-base text-espresso flex items-center gap-2 mb-1">
+                    <Plus className="w-4 h-4 text-terracotta" />
+                    <span>Upload New Hero Banner</span>
+                  </h3>
+                  <p className="text-xs text-espresso/60 mb-4">Add a new image, animated card, or announcement to the slider.</p>
+
+                  {/* LIVE PREVIEW OF CONFIGURED BANNER */}
+                  <div className="mb-5">
+                    <label className="block text-[10px] font-bold text-espresso/60 uppercase tracking-wider mb-1.5">
+                      Live Banner Card Preview
+                    </label>
+                    <div className={`p-4 rounded-2xl bg-gradient-to-br ${newBannerGradient} border-2 border-amber-300/80 shadow-sm relative overflow-hidden min-h-[140px] flex flex-col justify-between transition-all`}>
+                      {bannerPreview && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 w-24 h-24 rounded-xl overflow-hidden border border-white shadow-sm">
+                          <img src={bannerPreview} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-terracotta to-amber-600 text-white text-[9px] font-extrabold uppercase mb-1.5 shadow-xs">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>{newBannerBadge || "SPECIAL ASTRO INSIGHT"}</span>
+                        </div>
+                        <h4 className="font-serif font-bold text-sm text-espresso line-clamp-1 max-w-[70%]">
+                          {newBannerTitle || "Your Banner Headline"}
+                        </h4>
+                        <p className="text-[11px] text-espresso/75 mt-0.5 line-clamp-2 max-w-[70%]">
+                          {newBannerSubtitle || "Add a catchy description explaining this special astrology update or remedy..."}
+                        </p>
+                      </div>
+                      <div className="mt-2.5">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-gradient-to-r from-terracotta to-amber-600 text-white text-[10px] font-bold shadow-xs">
+                          <span>{newBannerCtaText || "Explore Now"}</span>
+                          <ArrowRight className="w-2.5 h-2.5" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FORM FIELDS */}
+                  <form onSubmit={handleCreateBanner} className="space-y-3.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-espresso/70 mb-1">BANNER TITLE *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Auspicious Guru Pushya Yog Active"
+                        value={newBannerTitle}
+                        onChange={(e) => setNewBannerTitle(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-espresso/70 mb-1">SUBTITLE / DESCRIPTION</label>
+                      <textarea
+                        rows={2}
+                        placeholder="e.g. Perform gold purchase or start new business under auspicious planetary alignment today."
+                        value={newBannerSubtitle}
+                        onChange={(e) => setNewBannerSubtitle(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none resize-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">BADGE TEXT</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 🪙 SPECIAL DHAN YOG"
+                          value={newBannerBadge}
+                          onChange={(e) => setNewBannerBadge(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">BUTTON TEXT</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Check Kundli"
+                          value={newBannerCtaText}
+                          onChange={(e) => setNewBannerCtaText(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* TARGET ROUTE SELECTOR */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-espresso/70 mb-1">BUTTON DESTINATION LINK</label>
+                      <select
+                        value={newBannerCtaLink}
+                        onChange={(e) => setNewBannerCtaLink(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                      >
+                        <option value="/chat">💬 Chat with Astrologer (/chat)</option>
+                        <option value="/ai-chat">🤖 24/7 AI Astrologer (/ai-chat)</option>
+                        <option value="/kundli-milan">❤️ 36 Gunas Kundli Milan (/kundli-milan)</option>
+                        <option value="/kundli">🔮 Free Janam Kundli (/kundli)</option>
+                        <option value="/vip-pass">👑 VIP Astro Pass (/vip-pass)</option>
+                        <option value="/reels">🎬 Fullscreen Astro Reels (/reels)</option>
+                      </select>
+                    </div>
+
+                    {/* IMAGE UPLOAD / FILE PICKER */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-espresso/70 mb-1">BANNER IMAGE / GIF</label>
+                      <div className="space-y-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerFileSelect}
+                          className="block w-full text-xs text-espresso/70 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-terracotta file:text-white hover:file:bg-terracotta-hover file:cursor-pointer cursor-pointer border border-peach bg-astro-bg rounded-xl p-1"
+                        />
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-espresso/50 font-bold uppercase">Or Direct URL:</span>
+                          <input
+                            type="url"
+                            placeholder="https://images.unsplash.com/..."
+                            value={newBannerImageUrl}
+                            onChange={(e) => {
+                              setNewBannerImageUrl(e.target.value);
+                              setBannerPreview(e.target.value);
+                            }}
+                            className="flex-1 px-3 py-1.5 rounded-xl border border-peach bg-astro-bg text-xs focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BACKGROUND GRADIENT THEME PICKER */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-espresso/70 mb-1.5">BACKGROUND COLOR THEME</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { label: "Vedic Gold", gradient: "from-[#FFF9F2] via-[#FFEEDC] to-[#FFDFC8]" },
+                          { label: "Sun Amber", gradient: "from-[#FFFDF0] via-[#FEF3C7] to-[#FDE68A]" },
+                          { label: "Sky Shanti", gradient: "from-[#F0F9FF] via-[#E0F2FE] to-[#BAE6FD]" },
+                          { label: "Love Rose", gradient: "from-[#FFF1F2] via-[#FCE7F3] to-[#FBCFE8]" },
+                          { label: "Emerald Kuber", gradient: "from-[#ECFDF5] via-[#D1FAE5] to-[#A7F3D0]" },
+                          { label: "Royal Aura", gradient: "from-[#FAF5FF] via-[#F3E8FF] to-[#E9D5FF]" },
+                        ].map((theme) => (
+                          <button
+                            key={theme.label}
+                            type="button"
+                            onClick={() => setNewBannerGradient(theme.gradient)}
+                            className={`p-2 rounded-xl text-[10px] font-bold border transition-all text-center ${
+                              newBannerGradient === theme.gradient
+                                ? "border-terracotta bg-terracotta/10 text-terracotta shadow-xs"
+                                : "border-peach bg-white hover:bg-peach/30 text-espresso/70"
+                            }`}
+                          >
+                            <div className={`w-full h-3 rounded-md bg-gradient-to-r ${theme.gradient} mb-1 border border-peach`} />
+                            <span>{theme.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingBanner}
+                      className="w-full py-3 rounded-2xl bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold shadow-md inline-flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+                    >
+                      {isSubmittingBanner ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <UploadCloud className="w-4 h-4" />
+                          <span>Publish to Hero Slider</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN: Active Slider Banners List */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="bg-white p-5 sm:p-6 rounded-3xl border border-peach shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-serif font-bold text-base text-espresso flex items-center gap-2">
+                        <span>Active Hero Slider Cards</span>
+                        <span className="px-2 py-0.5 rounded-full bg-peach text-terracotta text-[10px] font-bold">
+                          {adminBanners.length} Total
+                        </span>
+                      </h3>
+                      <p className="text-xs text-espresso/60 mt-0.5">These cards auto-scroll horizontally on the homepage header.</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.dispatchEvent(new Event("astroai_banners_updated"));
+                        showToast("Slider refreshed on live devices!");
+                      }}
+                      className="px-3 py-1.5 rounded-xl border border-peach bg-white hover:bg-peach/30 text-xs font-bold text-terracotta active:scale-95 transition-all shadow-xs"
+                    >
+                      Sync Now
+                    </button>
+                  </div>
+
+                  {adminBanners.length === 0 ? (
+                    <div className="p-8 text-center border-2 border-dashed border-peach rounded-2xl">
+                      <p className="text-xs text-espresso/60">No banners found. The default animated Vedic cards are active.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {adminBanners.map((banner, index) => {
+                        const isKalachakra = banner.type === "kalachakra_chakra" || banner.bannerId === "banner-kalachakra";
+                        const isPreset = banner.isSystemDefault || isKalachakra;
+
+                        return (
+                          <div
+                            key={banner.bannerId || banner.id || `b-${index}`}
+                            className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                              banner.isActive !== false
+                                ? "bg-gradient-to-r from-white to-[#FFFDF9] border-peach shadow-xs"
+                                : "bg-neutral-50 border-neutral-200 opacity-60"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* Thumbnail / Symbol */}
+                              <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-tr from-amber-500 to-terracotta flex items-center justify-center text-white flex-shrink-0 shadow-sm border border-amber-300">
+                                {banner.imageUrl ? (
+                                  <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-xl">☀️</span>
+                                )}
+                              </div>
+
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-peach/80 text-terracotta">
+                                    {banner.badge || "INSIGHT"}
+                                  </span>
+                                  {isPreset && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800">
+                                      Built-in Animation
+                                    </span>
+                                  )}
+                                  <span className={`w-2 h-2 rounded-full ${banner.isActive !== false ? "bg-emerald-500" : "bg-neutral-400"}`} />
+                                </div>
+                                <h4 className="font-bold text-xs sm:text-sm text-espresso truncate">
+                                  {banner.title}
+                                </h4>
+                                <p className="text-[11px] text-espresso/60 truncate max-w-sm">
+                                  {banner.subtitle || "No description provided"}
+                                </p>
+                                <p className="text-[10px] text-terracotta font-semibold mt-0.5">
+                                  Action: {banner.ctaText || "Explore"} ➔ {banner.ctaLink || "/chat"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+                              {/* Toggle Active Switch */}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleBanner(banner.bannerId || banner.id)}
+                                title={banner.isActive !== false ? "Disable banner from slider" : "Enable banner in slider"}
+                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                                  banner.isActive !== false
+                                    ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                                    : "bg-neutral-200 text-neutral-700 hover:bg-neutral-300"
+                                }`}
+                              >
+                                {banner.isActive !== false ? <ToggleRight className="w-4 h-4 text-emerald-600" /> : <ToggleLeft className="w-4 h-4" />}
+                                <span>{banner.isActive !== false ? "Active" : "Hidden"}</span>
+                              </button>
+
+                              {/* Delete Button (Only for custom banners) */}
+                              {!isKalachakra && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteBanner(banner.bannerId || banner.id, banner.title)}
+                                  title="Delete Banner"
+                                  className="p-1.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-600 transition-all cursor-pointer active:scale-95"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

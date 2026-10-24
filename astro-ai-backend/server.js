@@ -18,6 +18,7 @@ import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 import reelRoutes from "./routes/reelRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import bannerRoutes from "./routes/bannerRoutes.js";
 
 dotenv.config();
 
@@ -102,6 +103,7 @@ app.use("/api/v1/subscriptions", subscriptionRoutes);
 app.use("/api/v1/reels", reelRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/banners", bannerRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
