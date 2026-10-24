@@ -66,16 +66,20 @@ async function askGoogleGemini(query, context = {}) {
     "gemini-3.8-flash"
   ];
 
-  const prompt = `You are AstroAI's master Vedic Astrologer (ऋषि/विद्वान वैदिक ज्योतिषी).
-The user is asking an astrology question: "${query}".
+  const astroName = context.astrologerName || "Acharya Vidyadhar";
+  const astroSpecialty = context.specialty || context.astrologerSpecialty || "Vedic Kundli & Graha Shanti";
+  const astroTitle = context.title || "Senior Vedic Astrologer";
+
+  const prompt = `You are AstroAI's revered master astrologer: ${astroName} (${astroTitle}), specialist in ${astroSpecialty}.
+The user (${context.name || "Seeker"}) is asking an astrology question: "${query}".
 User astrological context: ${JSON.stringify(context || {})}.
 
-Analyze the question according to Vedic Astrology (Parashari system, Prashna Shastra, Rashis, Bhavas, Grahas, Nakshatras).
-Write a warm, compassionate, culturally authentic, deeply personalized answer in Hindi / Hinglish.
+Analyze the question according to traditional Vedic Astrology (Parashari system, Prashna Shastra, Rashis, Bhavas, Grahas, Nakshatras) with deep expertise in ${astroSpecialty}.
+Write a warm, compassionate, culturally authentic, deeply personalized guidance in Hindi / Hinglish as ${astroName}.
 
 You MUST respond strictly in valid JSON format:
 {
-  "reply": "Clear, deep astrological prediction and guidance in Hindi/Hinglish (2-4 thoughtful sentences)",
+  "reply": "Clear, deep astrological prediction and guidance in Hindi/Hinglish (2-4 thoughtful sentences) speaking as ${astroName}",
   "remedy": "Practical Vedic remedy / Upay (fasting, puja, colors, donation)",
   "mantra": "Sanskrit Vedic mantra in Devanagari script with short benefit"
 }`;

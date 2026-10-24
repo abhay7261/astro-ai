@@ -22,6 +22,9 @@ export interface UserAstrologicalContext {
   pob?: string;
   rashi?: string;
   lagna?: string;
+  astrologerName?: string;
+  specialty?: string;
+  title?: string;
 }
 
 // CONNECTED TO LIVE NODE.JS BACKEND
@@ -56,8 +59,9 @@ export async function sendAIAstrologerMessage(
     qClean.includes("radhe radhe") || qClean.includes("jai shree ram") ||
     qClean === "hello" || qClean === "hi"
   ) {
+    const astroGreetingName = context?.astrologerName ? `मैं हूँ ${context.astrologerName}` : "आपका AstroAI में स्वागत है";
     return {
-      text: `राम राम! 🙏 प्रणाम ${userName}। आपका AstroAI में स्वागत है। कहिए, आज ग्रह-नक्षत्र आपके जीवन के किस पहलू (विवाह, करियर, धन, या स्वास्थ्य) पर आपका मार्गदर्शन कर सकते हैं? आप बेझिझक अपना प्रश्न पूछें।`,
+      text: `राम राम! 🙏 प्रणाम ${userName}। ${astroGreetingName}। कहिए, आज ग्रह-नक्षत्र आपके जीवन के किस पहलू (विवाह, करियर, धन, या स्वास्थ्य) पर आपका मार्गदर्शन कर सकते हैं? आप बेझिझक अपना प्रश्न पूछें।`,
       remedy: "दिन की शुरुआत सूर्य देव को तांबे के लोटे से अर्घ्य देकर और गायत्री मंत्र के जप से करें।",
       mantra: "ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्",
     };
