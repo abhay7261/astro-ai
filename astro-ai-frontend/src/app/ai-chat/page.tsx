@@ -5,8 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { 
   Sparkles, Send, Trash2, ArrowLeft, Bot, Sun, 
-  Heart, Briefcase, Coins, ShieldAlert, Copy, Check, MessageCircle, ChevronRight,
-  Star, CheckCircle2, RefreshCw, Info, X, SlidersHorizontal, Award, Globe, Flame
+  Heart, Briefcase, Coins, ShieldAlert, Copy, Check, MessageCircle, 
+  ChevronRight, ChevronLeft, Users, Star, CheckCircle2, RefreshCw, 
+  Info, X, Globe, SlidersHorizontal
 } from "lucide-react";
 import MobileAppLayout from "../components/mobile/MobileAppLayout";
 import { AuthUser } from "../components/mobile/AuthScreen";
@@ -197,14 +198,12 @@ export default function AIChatPage() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [showCatalogModal, setShowCatalogModal] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [inspectedAstro, setInspectedAstro] = useState<AstrologerPersona | null>(null);
-  const [backendStatus, setBackendStatus] = useState<"connected" | "connecting" | "offline">("connecting");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const storiesContainerRef = useRef<HTMLDivElement>(null);
 
-  // 1. Fetch live astrologers directly from the backend API & MongoDB Atlas
+  // 1. Fetch live astrologers directly from Backend API & MongoDB Atlas
   useEffect(() => {
     try {
       const saved = localStorage.getItem("astroai_auth_user");
@@ -217,11 +216,7 @@ export default function AIChatPage() {
       try {
         const live = await astrologersApi.getAll();
         if (Array.isArray(live) && live.length > 0) {
-          setBackendStatus("connected");
-
-          // Map backend records to rich personas
           const mapped: AstrologerPersona[] = live.map((a: any, idx: number) => {
-            // Find existing matching preset or build rich persona
             const matchedDefault = defaultAstrologers.find(
               (d) => d.id === String(a.id || a.astrologerId) || d.name.toLowerCase() === a.name.toLowerCase()
             );
@@ -252,16 +247,13 @@ export default function AIChatPage() {
           });
 
           setAstrologers(mapped);
-          // Keep current selected or default to first
           setSelectedAstrologer((prev) => {
             const found = mapped.find(m => m.id === prev.id || m.name === prev.name);
             return found || mapped[0];
           });
-          return;
         }
       } catch (err) {
         console.warn("Backend API error or waking up:", err);
-        setBackendStatus("offline");
       }
     };
 
@@ -297,7 +289,6 @@ export default function AIChatPage() {
 
   const handleSelectAstrologer = (astro: AstrologerPersona) => {
     setSelectedAstrologer(astro);
-    setShowCatalogModal(false);
   };
 
   const handleSend = async (textToSend?: string) => {
@@ -377,40 +368,55 @@ export default function AIChatPage() {
       backTitle="Home" 
       title={`${selectedAstrologer.shortName} (Vedic AI)`}
     >
-      <div className="flex flex-col h-[calc(100dvh-150px)] max-w-xl mx-auto -my-2 relative">
+      <div className="h-[calc(100dvh-130px)] max-w-5xl mx-auto flex flex-row gap-2 sm:gap-3.5 -my-2 relative">
         
         {/* ======================================================== */}
-        {/* 1. VEDIC ASTROLOGER "STORIES" CAROUSEL (Top Ribbon)      */}
+        {/* 1. VERTICAL ASTROLOGER SIDEBAR (SIDE MAI VERTICALLY)     */}
         {/* ======================================================== */}
-        <div className="flex-shrink-0 pt-0.5 pb-2 border-b border-peach/50 mb-2">
-          
-          {/* Subtle Ribbon Header */}
-          <div className="flex items-center justify-between px-2 mb-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-espresso/90 font-serif">
-                Select Astrologer
-              </span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-900 font-extrabold border border-amber-300/80">
-                Live Backend
+        <aside 
+          className={`flex-shrink-0 flex flex-col bg-white/95 backdrop-blur-xs rounded-2xl sm:rounded-3xl border-2 border-amber-300/80 shadow-md transition-all duration-300 overflow-hidden ${
+            isSidebarExpanded ? "w-56 sm:w-68" : "w-16 sm:w-64"
+          }`}
+        >
+          {/* Sidebar Top Header */}
+          <div className="p-2 sm:p-3 border-b border-peach/80 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent flex items-center justify-between">
+            <div className={`items-center gap-1.5 min-w-0 ${isSidebarExpanded ? "flex" : "hidden sm:flex"}`}>
+              <Sparkles className="w-3.5 h-3.5 text-terracotta fill-amber-300 flex-shrink-0" />
+              <h2 className="font-serif font-bold text-xs sm:text-sm text-espresso truncate">
+                Astrologers
+              </h2>
+              <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {astrologers.length}
               </span>
             </div>
 
+            {/* Mobile Expand / Collapse Button */}
             <button
               type="button"
-              onClick={() => setShowCatalogModal(true)}
-              className="text-[10px] font-bold text-terracotta hover:text-amber-700 flex items-center gap-0.5 active:scale-95 transition-transform"
+              onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+              className="w-full sm:w-auto p-1 rounded-xl bg-amber-50 sm:bg-transparent hover:bg-peach/60 text-espresso/70 flex items-center justify-center transition-colors active:scale-95"
+              title={isSidebarExpanded ? "Collapse Sidebar" : "Expand Astrologers"}
             >
-              <span>Explore All ({astrologers.length})</span>
-              <ChevronRight className="w-3 h-3 stroke-[2.5]" />
+              {isSidebarExpanded ? (
+                <div className="flex items-center gap-1 text-[10px] font-bold text-terracotta">
+                  <ChevronLeft className="w-4 h-4" />
+                  <span className="sm:hidden">Close</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center py-0.5">
+                  <Users className="w-4 h-4 text-terracotta sm:hidden" />
+                  <span className="text-[8px] font-bold text-espresso/60 sm:hidden">List</span>
+                  <div className="hidden sm:flex items-center text-[10px] text-terracotta font-bold">
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              )}
             </button>
           </div>
 
-          {/* Glowing Circular Story Avatars Carousel */}
-          <div 
-            ref={storiesContainerRef}
-            className="flex items-center gap-3 overflow-x-auto px-2 py-1 scrollbar-none scroll-smooth"
-          >
+          {/* Vertical Astrologers Scroll List */}
+          <div className="flex-1 overflow-y-auto p-1.5 sm:p-2 space-y-1.5 sm:space-y-2 scrollbar-thin">
             {astrologers.map((astro) => {
               const isSelected = selectedAstrologer.id === astro.id;
 
@@ -419,464 +425,331 @@ export default function AIChatPage() {
                   key={astro.id}
                   type="button"
                   onClick={() => handleSelectAstrologer(astro)}
-                  className="flex flex-col items-center flex-shrink-0 group focus:outline-none transition-transform active:scale-95"
-                >
-                  {/* Glowing Story Ring */}
-                  <div className={`relative rounded-full transition-all duration-300 ${
+                  className={`w-full rounded-2xl transition-all duration-200 text-left flex relative border-2 active:scale-95 ${
+                    isSidebarExpanded 
+                      ? "p-2 gap-2.5 items-center" 
+                      : "p-1.5 sm:p-2.5 flex-col sm:flex-row gap-1 sm:gap-2.5 items-center justify-center sm:justify-start"
+                  } ${
                     isSelected
-                      ? "p-[3px] bg-gradient-to-tr from-amber-500 via-orange-500 to-terracotta ring-2 ring-terracotta/40 scale-105 shadow-md shadow-terracotta/25"
-                      : "p-[2px] bg-gradient-to-tr from-amber-300 via-peach to-orange-200 group-hover:from-amber-400 group-hover:to-terracotta opacity-85 group-hover:opacity-100"
-                  }`}>
-                    {/* Portrait Avatar */}
-                    <div className="w-13 h-13 rounded-full overflow-hidden bg-espresso border-2 border-white relative shadow-xs">
+                      ? "bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-white border-terracotta shadow-md shadow-terracotta/20 ring-1 ring-terracotta/30"
+                      : "bg-white/85 border-amber-200/70 hover:border-amber-400 hover:bg-amber-50/50 shadow-xs"
+                  }`}
+                >
+                  {/* Avatar with Halo Ring */}
+                  <div className="relative flex-shrink-0">
+                    <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 shadow-xs transition-transform ${
+                      isSelected ? "border-terracotta ring-2 ring-amber-400 scale-105" : "border-amber-300"
+                    }`}>
                       <Image
                         src={astro.image}
                         alt={astro.name}
-                        width={52}
-                        height={52}
+                        width={44}
+                        height={44}
                         unoptimized
                         className="w-full h-full object-cover"
                       />
                     </div>
-
-                    {/* Online Dot */}
-                    <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs animate-pulse" />
-
-                    {/* Checkmark Badge on Active */}
-                    {isSelected && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-terracotta text-white flex items-center justify-center border-2 border-white shadow-xs">
-                        <Check className="w-2.5 h-2.5 stroke-[3]" />
-                      </span>
-                    )}
+                    {/* Live Online Badge */}
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs animate-pulse" />
                   </div>
 
-                  {/* Astrologer Short Name */}
-                  <span className={`text-[11px] font-bold mt-1 text-center truncate max-w-[68px] ${
-                    isSelected ? "text-terracotta font-extrabold" : "text-espresso/80"
-                  }`}>
-                    {astro.shortName}
-                  </span>
+                  {/* Expanded / Desktop Astrologer Info */}
+                  <div className={`min-w-0 flex-1 ${isSidebarExpanded ? "block" : "hidden sm:block"}`}>
+                    <div className="flex items-center justify-between gap-1">
+                      <h3 className={`font-serif font-bold text-xs truncate ${
+                        isSelected ? "text-terracotta" : "text-espresso"
+                      }`}>
+                        {astro.name}
+                      </h3>
+                      {isSelected && (
+                        <span className="w-2 h-2 rounded-full bg-terracotta flex-shrink-0" />
+                      )}
+                    </div>
 
-                  {/* Micro Domain Pill */}
-                  <span className={`text-[9px] px-1.5 py-0.1 rounded-full font-bold truncate max-w-[68px] ${
-                    isSelected 
-                      ? "bg-terracotta text-white" 
-                      : "bg-peach/60 text-espresso/70"
-                  }`}>
-                    {astro.badge}
+                    <p className="text-[10px] text-terracotta font-semibold truncate leading-tight mt-0.5">
+                      {astro.badge}
+                    </p>
+
+                    <div className="flex items-center gap-1.5 mt-0.5 text-[9px] text-espresso/60">
+                      <span className="flex items-center gap-0.5 text-amber-600 font-bold">
+                        <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                        {astro.rating}
+                      </span>
+                      <span>•</span>
+                      <span>{astro.experience}</span>
+                    </div>
+                  </div>
+
+                  {/* Compact Mobile Short Name (when sidebar is narrow on phone) */}
+                  <span className={`text-[9px] font-bold text-center truncate max-w-[48px] sm:hidden leading-none mt-0.5 ${
+                    isSidebarExpanded ? "hidden" : "block"
+                  } ${isSelected ? "text-terracotta font-extrabold" : "text-espresso/70"}`}>
+                    {astro.shortName}
                   </span>
                 </button>
               );
             })}
-
-            {/* Quick Catalog Opener Card in Carousel */}
-            <button
-              type="button"
-              onClick={() => setShowCatalogModal(true)}
-              className="flex flex-col items-center flex-shrink-0 group focus:outline-none transition-transform active:scale-95"
-            >
-              <div className="w-13 h-13 rounded-full border-2 border-dashed border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center shadow-xs group-hover:border-terracotta group-hover:bg-amber-100/60 transition-colors">
-                <Sparkles className="w-5 h-5 text-terracotta fill-amber-300" />
-              </div>
-              <span className="text-[11px] font-bold mt-1 text-terracotta text-center truncate max-w-[68px]">
-                View All
-              </span>
-              <span className="text-[9px] px-1.5 py-0.1 rounded-full font-bold bg-amber-100 text-amber-800">
-                Directory
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* ======================================================== */}
-        {/* 2. COMPACT ACTIVE ASTROLOGER GLASS CARD                  */}
-        {/* ======================================================== */}
-        <div className="bg-gradient-to-r from-amber-500/10 via-terracotta/10 to-orange-500/10 backdrop-blur-xs p-2 sm:p-2.5 rounded-2xl border border-amber-300/80 flex items-center justify-between gap-2 mb-2 shadow-xs flex-shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="relative w-9 h-9 rounded-full overflow-hidden border border-terracotta shadow-xs flex-shrink-0">
-              <Image
-                src={selectedAstrologer.image}
-                alt={selectedAstrologer.name}
-                width={36}
-                height={36}
-                unoptimized
-                className="w-full h-full object-cover"
-              />
-              <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <h2 className="font-serif font-bold text-xs sm:text-sm text-espresso truncate">
-                  {selectedAstrologer.name}
-                </h2>
-                <CheckCircle2 className="w-3 h-3 text-sky-500 fill-sky-500 flex-shrink-0" />
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px] text-espresso/70 truncate">
-                <span className="text-terracotta font-semibold truncate">{selectedAstrologer.specialty}</span>
-                <span>•</span>
-                <span className="font-medium">{selectedAstrologer.experience}</span>
-              </div>
-            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => setInspectedAstro(selectedAstrologer)}
-              className="text-[10px] font-bold text-espresso/70 hover:text-terracotta bg-white/90 border border-peach px-2 py-1 rounded-xl shadow-xs active:scale-95 flex items-center gap-1"
-              title="View Profile Bio & Upay"
-            >
-              <Info className="w-3 h-3 text-terracotta" />
-              <span className="hidden sm:inline">Bio</span>
-            </button>
-
-            <button
-              onClick={handleClearChat}
-              className="text-[10px] font-bold text-espresso/60 hover:text-rose-600 bg-white/90 border border-peach px-2 py-1 rounded-xl shadow-xs active:scale-95 flex items-center gap-1"
-              title="Reset Chat"
-            >
-              <RefreshCw className="w-3 h-3 text-espresso/60" />
-              <span>Reset</span>
-            </button>
+          {/* Sidebar Bottom Footer */}
+          <div className={`p-2 border-t border-peach/70 bg-amber-50/50 text-center ${
+            isSidebarExpanded ? "block" : "hidden sm:block"
+          }`}>
+            <p className="text-[10px] text-espresso/60 font-medium truncate">
+              🟢 Live Backend Sync Active
+            </p>
           </div>
-        </div>
+        </aside>
 
         {/* ======================================================== */}
-        {/* 3. TOPIC CATEGORY FILTER PILLS                           */}
+        {/* 2. CHAT CONVERSATION VIEW (MAIN RIGHT AREA)              */}
         {/* ======================================================== */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 mb-1.5 scrollbar-none flex-shrink-0">
-          {topicCategories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all active:scale-95 ${
-                activeCategory === cat.id
-                  ? "bg-terracotta text-white shadow-xs"
-                  : "bg-white/90 border border-peach text-espresso/70 hover:bg-peach/40"
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        {/* ======================================================== */}
-        {/* 4. CHAT MESSAGES STREAM                                  */}
-        {/* ======================================================== */}
-        <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
-          {messages.map((msg) => {
-            const isUser = msg.sender === "user";
-
-            return (
-              <div
-                key={msg.id}
-                className={`flex items-start gap-2 text-xs sm:text-sm animate-in fade-in duration-200 ${
-                  isUser ? "flex-row-reverse" : "flex-row"
-                }`}
-              >
-                {/* Avatar */}
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border overflow-hidden ${
-                    isUser
-                      ? "bg-terracotta text-white border-peach font-bold text-xs"
-                      : "border-terracotta shadow-xs ring-1 ring-amber-300"
-                  }`}
-                >
-                  {isUser ? (
-                    <span>You</span>
-                  ) : (
-                    <Image
-                      src={selectedAstrologer.image}
-                      alt={selectedAstrologer.name}
-                      width={32}
-                      height={32}
-                      unoptimized
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
-
-                {/* Message Bubble Card */}
-                <div
-                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl p-3.5 shadow-xs relative ${
-                    isUser
-                      ? "bg-gradient-to-r from-terracotta to-[#9E3920] text-white rounded-tr-xs"
-                      : "bg-white/95 border-2 border-amber-200/90 text-espresso rounded-tl-xs"
-                  }`}
-                >
-                  {/* Astrologer Name Sub-header on AI bubble */}
-                  {!isUser && (
-                    <div className="flex items-center gap-1 mb-1 text-[10px] font-serif font-bold text-terracotta">
-                      <Sparkles className="w-2.5 h-2.5 fill-terracotta text-terracotta" />
-                      <span>{selectedAstrologer.name}</span>
-                    </div>
-                  )}
-
-                  {/* Text content with line breaks */}
-                  <div className="whitespace-pre-line leading-relaxed text-xs sm:text-sm">
-                    {msg.text}
-                  </div>
-
-                  {/* Pandit Ji Upay & Mantra Box */}
-                  {msg.remedy && (
-                    <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-amber-100/90 to-orange-50 border border-amber-300 text-espresso text-xs shadow-xs">
-                      <div className="flex items-center gap-1 text-terracotta font-extrabold uppercase text-[10px] mb-1">
-                        <Sparkles className="w-3 h-3 text-amber-600 fill-amber-500" />
-                        <span>Pandit Ji Ka Upay:</span>
-                      </div>
-                      <p className="leading-relaxed">{msg.remedy}</p>
-
-                      {msg.mantra && (
-                        <div className="mt-2 pt-2 border-t border-amber-200/80 font-serif font-bold text-terracotta text-[11px]">
-                          {msg.mantra}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Bubble Footer: Timestamp & Copy */}
-                  <div className={`flex items-center justify-between gap-3 mt-2 text-[10px] ${
-                    isUser ? "text-white/70" : "text-espresso/50"
-                  }`}>
-                    <span>{msg.timestamp}</span>
-                    {!isUser && (
-                      <button
-                        onClick={() => handleCopy(msg.text, msg.id)}
-                        className="hover:text-terracotta flex items-center gap-0.5 active:scale-90 transition-transform"
-                        title="Copy Answer"
-                      >
-                        {copiedId === msg.id ? (
-                          <span className="flex items-center gap-0.5 text-emerald-600 font-bold">
-                            <Check className="w-2.5 h-2.5" /> Copied
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-0.5">
-                            <Copy className="w-2.5 h-2.5" /> Copy
-                          </span>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Typing Indicator */}
-          {isTyping && (
-            <div className="flex items-start gap-2 text-xs animate-in fade-in">
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-300 flex-shrink-0">
+        <div className="flex-1 min-w-0 flex flex-col h-full bg-white/70 backdrop-blur-xs rounded-2xl sm:rounded-3xl border-2 border-amber-300/80 p-2.5 sm:p-3.5 shadow-md relative overflow-hidden">
+          
+          {/* Active Astrologer Consultation Bar */}
+          <div className="bg-gradient-to-r from-amber-500/15 via-terracotta/15 to-orange-500/10 p-2 sm:p-2.5 rounded-2xl border border-amber-300/80 flex items-center justify-between gap-2 mb-2 shadow-xs flex-shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="relative w-9 h-9 rounded-full overflow-hidden border border-terracotta shadow-xs flex-shrink-0">
                 <Image
                   src={selectedAstrologer.image}
                   alt={selectedAstrologer.name}
-                  width={32}
-                  height={32}
+                  width={36}
+                  height={36}
                   unoptimized
                   className="w-full h-full object-cover"
                 />
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
               </div>
-              <div className="bg-white/95 border-2 border-amber-200/90 rounded-2xl p-3 shadow-xs flex items-center gap-2 text-espresso">
-                <Sun className="w-4 h-4 text-amber-500 animate-spin-slow" />
-                <span className="text-xs font-semibold text-espresso/80">
-                  {selectedAstrologer.name} grah-nakshatra calculate kar rahe hain...
-                </span>
-                <span className="inline-flex gap-1 ml-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-terracotta animate-bounce" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-terracotta animate-bounce delay-100" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-terracotta animate-bounce delay-200" />
-                </span>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <h2 className="font-serif font-bold text-xs sm:text-sm text-espresso truncate">
+                    {selectedAstrologer.name}
+                  </h2>
+                  <CheckCircle2 className="w-3 h-3 text-sky-500 fill-sky-500 flex-shrink-0" />
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-espresso/70 truncate">
+                  <span className="text-terracotta font-semibold truncate">{selectedAstrologer.specialty}</span>
+                  <span>•</span>
+                  <span className="font-medium">{selectedAstrologer.experience}</span>
+                </div>
               </div>
             </div>
-          )}
 
-          <div ref={messagesEndRef} />
-        </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setInspectedAstro(selectedAstrologer)}
+                className="text-[10px] font-bold text-espresso/70 hover:text-terracotta bg-white/90 border border-peach px-2 py-1 rounded-xl shadow-xs active:scale-95 flex items-center gap-1"
+                title="View Astrologer Bio & Upay"
+              >
+                <Info className="w-3 h-3 text-terracotta" />
+                <span className="hidden sm:inline">Bio</span>
+              </button>
 
-        {/* ======================================================== */}
-        {/* 5. QUICK SUGGESTION CHIPS                                */}
-        {/* ======================================================== */}
-        <div className="flex gap-1.5 overflow-x-auto py-2 scrollbar-none flex-shrink-0">
-          {activeChips.map((chip, index) => (
-            <button
-              key={index}
-              onClick={() => handleSend(chip)}
-              disabled={isTyping}
-              className="flex-shrink-0 text-[11px] font-semibold bg-white/95 hover:bg-peach/60 border border-peach text-espresso px-3 py-1.5 rounded-full shadow-xs transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
-            >
-              {chip}
-            </button>
-          ))}
-        </div>
-
-        {/* ======================================================== */}
-        {/* 6. BOTTOM INPUT BAR                                      */}
-        {/* ======================================================== */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
-          className="flex items-center gap-2 pt-1 pb-1 flex-shrink-0"
-        >
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            disabled={isTyping}
-            placeholder={`Ask ${selectedAstrologer.shortName} (e.g. Shaadi kab hogi?)...`}
-            className="flex-1 bg-white border-2 border-amber-300/80 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-espresso placeholder-espresso/45 focus:outline-none focus:border-terracotta shadow-xs disabled:opacity-60"
-          />
-
-          <button
-            type="submit"
-            disabled={!inputText.trim() || isTyping}
-            className="w-11 h-11 rounded-2xl bg-gradient-to-r from-terracotta to-amber-600 text-white flex items-center justify-center disabled:opacity-40 active:scale-95 shadow-md shadow-terracotta/25 flex-shrink-0 transition-transform"
-            title="Send Question"
-          >
-            <Send className="w-4 h-4 translate-x-0.5" />
-          </button>
-        </form>
-
-        {/* ======================================================== */}
-        {/* 7. ALL ASTROLOGERS CATALOG MODAL (Bottom Sheet / Drawer) */}
-        {/* ======================================================== */}
-        {showCatalogModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-            <div className="bg-[#FFFDF9] w-full max-w-lg rounded-t-3xl sm:rounded-3xl border-t-2 sm:border-2 border-amber-300 shadow-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 duration-300">
-              
-              {/* Modal Header */}
-              <div className="p-4 border-b border-peach/80 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-transparent flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-terracotta text-white flex items-center justify-center shadow-xs">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-serif font-bold text-base text-espresso">
-                      Choose Your Vedic Astrologer
-                    </h3>
-                    <p className="text-[11px] text-espresso/70">
-                      Select an Acharya based on your question or life situation
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowCatalogModal(false)}
-                  className="w-8 h-8 rounded-full bg-white border border-peach text-espresso/70 hover:text-espresso flex items-center justify-center active:scale-90 shadow-xs"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Scrollable Astrologers Card Deck */}
-              <div className="p-4 overflow-y-auto space-y-3.5 flex-1 scrollbar-thin">
-                {astrologers.map((astro) => {
-                  const isSelected = selectedAstrologer.id === astro.id;
-
-                  return (
-                    <div
-                      key={astro.id}
-                      onClick={() => handleSelectAstrologer(astro)}
-                      className={`cursor-pointer rounded-2xl p-3.5 border-2 transition-all duration-200 relative flex items-start gap-3.5 ${
-                        isSelected
-                          ? "bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-white border-terracotta shadow-md shadow-terracotta/20 ring-1 ring-terracotta/40"
-                          : "bg-white border-amber-200/80 hover:border-amber-400 hover:bg-amber-50/40 shadow-xs"
-                      }`}
-                    >
-                      {/* Avatar with Halo Ring */}
-                      <div className="relative flex-shrink-0">
-                        <div className={`w-16 h-16 rounded-2xl overflow-hidden border-2 shadow-sm ${
-                          isSelected ? "border-terracotta ring-2 ring-amber-400" : "border-amber-300"
-                        }`}>
-                          <Image
-                            src={astro.image}
-                            alt={astro.name}
-                            width={64}
-                            height={64}
-                            unoptimized
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
-                      </div>
-
-                      {/* Info Body */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <h4 className="font-serif font-bold text-espresso text-sm truncate">
-                              {astro.name}
-                            </h4>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-sky-500 fill-sky-500 flex-shrink-0" />
-                          </div>
-                          
-                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap ${
-                            isSelected ? "bg-terracotta text-white" : "bg-amber-100 text-amber-900 border border-amber-300/80"
-                          }`}>
-                            {astro.badge}
-                          </span>
-                        </div>
-
-                        <p className="text-[11px] font-semibold text-terracotta line-clamp-1 mt-0.5">
-                          {astro.specialty}
-                        </p>
-
-                        <p className="text-[11px] text-espresso/70 line-clamp-2 mt-1 leading-snug">
-                          {astro.bio}
-                        </p>
-
-                        {/* Rating, Consultations & Select Button Row */}
-                        <div className="mt-2.5 pt-2 border-t border-peach/60 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-[10px] text-espresso/70 font-medium">
-                            <span className="flex items-center gap-0.5 text-amber-600 font-bold">
-                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                              {astro.rating}
-                            </span>
-                            <span>•</span>
-                            <span>{astro.experience}</span>
-                            <span>•</span>
-                            <span>{astro.consultations}</span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectAstrologer(astro);
-                            }}
-                            className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 flex items-center gap-1 ${
-                              isSelected
-                                ? "bg-emerald-600 text-white"
-                                : "bg-gradient-to-r from-terracotta to-amber-600 text-white hover:opacity-95"
-                            }`}
-                          >
-                            {isSelected ? (
-                              <>
-                                <Check className="w-3 h-3 stroke-[3]" />
-                                <span>Active</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>Select</span>
-                                <ChevronRight className="w-3 h-3 stroke-[2.5]" />
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
+              <button
+                onClick={handleClearChat}
+                className="text-[10px] font-bold text-espresso/60 hover:text-rose-600 bg-white/90 border border-peach px-2 py-1 rounded-xl shadow-xs active:scale-95 flex items-center gap-1"
+                title="Reset Chat"
+              >
+                <RefreshCw className="w-3 h-3 text-espresso/60" />
+                <span className="hidden sm:inline">Reset</span>
+              </button>
             </div>
           </div>
-        )}
+
+          {/* Topic Category Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 mb-1.5 scrollbar-none flex-shrink-0">
+            {topicCategories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all active:scale-95 ${
+                  activeCategory === cat.id
+                    ? "bg-terracotta text-white shadow-xs"
+                    : "bg-white/90 border border-peach text-espresso/70 hover:bg-peach/40"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Chat Messages Stream */}
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
+            {messages.map((msg) => {
+              const isUser = msg.sender === "user";
+
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex items-start gap-2 text-xs sm:text-sm animate-in fade-in duration-200 ${
+                    isUser ? "flex-row-reverse" : "flex-row"
+                  }`}
+                >
+                  {/* Avatar */}
+                  <div
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border overflow-hidden ${
+                      isUser
+                        ? "bg-terracotta text-white border-peach font-bold text-xs"
+                        : "border-terracotta shadow-xs ring-1 ring-amber-300"
+                    }`}
+                  >
+                    {isUser ? (
+                      <span>You</span>
+                    ) : (
+                      <Image
+                        src={selectedAstrologer.image}
+                        alt={selectedAstrologer.name}
+                        width={32}
+                        height={32}
+                        unoptimized
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+
+                  {/* Message Bubble Card */}
+                  <div
+                    className={`max-w-[85%] sm:max-w-[80%] rounded-2xl p-3 sm:p-3.5 shadow-xs relative ${
+                      isUser
+                        ? "bg-gradient-to-r from-terracotta to-[#9E3920] text-white rounded-tr-xs"
+                        : "bg-white/95 border-2 border-amber-200/90 text-espresso rounded-tl-xs"
+                    }`}
+                  >
+                    {/* Astrologer Name Sub-header on AI bubble */}
+                    {!isUser && (
+                      <div className="flex items-center gap-1 mb-1 text-[10px] font-serif font-bold text-terracotta">
+                        <Sparkles className="w-2.5 h-2.5 fill-terracotta text-terracotta" />
+                        <span>{selectedAstrologer.name}</span>
+                      </div>
+                    )}
+
+                    {/* Text content with line breaks */}
+                    <div className="whitespace-pre-line leading-relaxed text-xs sm:text-sm">
+                      {msg.text}
+                    </div>
+
+                    {/* Pandit Ji Upay & Mantra Box */}
+                    {msg.remedy && (
+                      <div className="mt-3 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-amber-100/90 to-orange-50 border border-amber-300 text-espresso text-xs shadow-xs">
+                        <div className="flex items-center gap-1 text-terracotta font-extrabold uppercase text-[10px] mb-1">
+                          <Sparkles className="w-3 h-3 text-amber-600 fill-amber-500" />
+                          <span>Pandit Ji Ka Upay:</span>
+                        </div>
+                        <p className="leading-relaxed">{msg.remedy}</p>
+
+                        {msg.mantra && (
+                          <div className="mt-2 pt-2 border-t border-amber-200/80 font-serif font-bold text-terracotta text-[11px]">
+                            {msg.mantra}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Bubble Footer: Timestamp & Copy */}
+                    <div className={`flex items-center justify-between gap-3 mt-2 text-[10px] ${
+                      isUser ? "text-white/70" : "text-espresso/50"
+                    }`}>
+                      <span>{msg.timestamp}</span>
+                      {!isUser && (
+                        <button
+                          onClick={() => handleCopy(msg.text, msg.id)}
+                          className="hover:text-terracotta flex items-center gap-0.5 active:scale-90 transition-transform"
+                          title="Copy Answer"
+                        >
+                          {copiedId === msg.id ? (
+                            <span className="flex items-center gap-0.5 text-emerald-600 font-bold">
+                              <Check className="w-2.5 h-2.5" /> Copied
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-0.5">
+                              <Copy className="w-2.5 h-2.5" /> Copy
+                            </span>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Typing Indicator */}
+            {isTyping && (
+              <div className="flex items-start gap-2 text-xs animate-in fade-in">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-amber-300 flex-shrink-0">
+                  <Image
+                    src={selectedAstrologer.image}
+                    alt={selectedAstrologer.name}
+                    width={32}
+                    height={32}
+                    unoptimized
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="bg-white/95 border-2 border-amber-200/90 rounded-2xl p-3 shadow-xs flex items-center gap-2 text-espresso">
+                  <Sun className="w-4 h-4 text-amber-500 animate-spin-slow" />
+                  <span className="text-xs font-semibold text-espresso/80">
+                    {selectedAstrologer.shortName} grah-nakshatra calculate kar rahe hain...
+                  </span>
+                  <span className="inline-flex gap-1 ml-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-terracotta animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-terracotta animate-bounce delay-100" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-terracotta animate-bounce delay-200" />
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Quick Suggestion Chips */}
+          <div className="flex gap-1.5 overflow-x-auto py-1.5 scrollbar-none flex-shrink-0">
+            {activeChips.map((chip, index) => (
+              <button
+                key={index}
+                onClick={() => handleSend(chip)}
+                disabled={isTyping}
+                className="flex-shrink-0 text-[11px] font-semibold bg-white/95 hover:bg-peach/60 border border-peach text-espresso px-3 py-1 rounded-full shadow-xs transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+
+          {/* Bottom Input Bar */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend();
+            }}
+            className="flex items-center gap-2 pt-1 flex-shrink-0"
+          >
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              disabled={isTyping}
+              placeholder={`Ask ${selectedAstrologer.shortName} (e.g. Shaadi kab hogi?)...`}
+              className="flex-1 bg-white border-2 border-amber-300/80 rounded-2xl px-3.5 py-2 text-xs sm:text-sm text-espresso placeholder-espresso/45 focus:outline-none focus:border-terracotta shadow-xs disabled:opacity-60"
+            />
+
+            <button
+              type="submit"
+              disabled={!inputText.trim() || isTyping}
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-r from-terracotta to-amber-600 text-white flex items-center justify-center disabled:opacity-40 active:scale-95 shadow-md shadow-terracotta/25 flex-shrink-0 transition-transform"
+              title="Send Question"
+            >
+              <Send className="w-4 h-4 translate-x-0.5" />
+            </button>
+          </form>
+
+        </div>
 
         {/* ======================================================== */}
-        {/* 8. SINGLE ASTROLOGER BIO DETAIL POPUP                    */}
+        {/* 3. ASTROLOGER BIO DETAIL POPUP MODAL                     */}
         {/* ======================================================== */}
         {inspectedAstro && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
