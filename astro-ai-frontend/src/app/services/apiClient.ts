@@ -3,15 +3,25 @@
  * Connects frontend views and components directly to the Node.js MVC backend.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://astro-ai-x5c6.onrender.com/api/v1";
+export const getBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "https://astro-ai-x5c6.onrender.com/api/v1";
+};
+
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://astro-ai-x5c6.onrender.com/api/v1";
 
 // Generic request helper with fast timeout and fallback
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T | null> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
+    const baseUrl = getBaseUrl();
+    const res = await fetch(`${baseUrl}${endpoint}`, {
       ...options,
       signal: options.signal || controller.signal,
       headers: {
@@ -29,7 +39,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   } catch (err: any) {
     clearTimeout(timeoutId);
     if (err.name === "AbortError") {
-      console.warn(`[API] Timeout after 4s on ${endpoint} (Render waking up)`);
+      console.warn(`[API] Timeout after 8s on ${endpoint} (Server waking up)`);
     } else {
       console.warn(`[API] Network error on ${endpoint}:`, err);
     }
@@ -140,7 +150,7 @@ export const reelsApi = {
     try {
       const formData = new FormData();
       formData.append("video", file);
-      const res = await fetch(`${BASE_URL}/reels/upload`, {
+      const res = await fetch(`${getBaseUrl()}/reels/upload`, {
         method: "POST",
         body: formData,
       });

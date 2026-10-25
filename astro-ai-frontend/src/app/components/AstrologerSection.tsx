@@ -173,8 +173,12 @@ export default function AstrologerSection() {
         }
       } catch (err) {}
 
-      // 3. Keep clean empty list if none configured by admin
-      setAstrologers([]);
+      // 3. Graceful fallback to verified Vedic Astrologers
+      if (deletedAstros.length === 0) {
+        setAstrologers(astrologersData);
+      } else {
+        setAstrologers(astrologersData.filter((a) => !deletedAstros.includes(String(a.id))));
+      }
     };
 
     loadAstros();
