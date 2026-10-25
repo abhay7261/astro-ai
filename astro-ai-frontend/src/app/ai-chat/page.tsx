@@ -203,8 +203,8 @@ const topicCategories = [
 ];
 
 export default function AIChatPage() {
-  const [astrologers, setAstrologers] = useState<AstrologerPersona[]>(defaultAstrologers);
-  const [selectedAstrologer, setSelectedAstrologer] = useState<AstrologerPersona>(defaultAstrologers[0]);
+  const [astrologers, setAstrologers] = useState<AstrologerPersona[]>([]);
+  const [selectedAstrologer, setSelectedAstrologer] = useState<AstrologerPersona | null>(null);
   const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>({});
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -229,7 +229,7 @@ export default function AIChatPage() {
     const loadBackendAstrologers = async () => {
       try {
         const live = await astrologersApi.getAll();
-        if (Array.isArray(live) && live.length > 0) {
+        if (Array.isArray(live)) {
           const mapped: AstrologerPersona[] = live.map((a: any, idx: number) => {
             const matchedDefault = defaultAstrologers.find(
               (d) => d.id === String(a.id || a.astrologerId) || d.name.toLowerCase() === a.name.toLowerCase()
@@ -244,7 +244,7 @@ export default function AIChatPage() {
               experience: a.experience || matchedDefault?.experience || "10+ Yrs Exp",
               rating: a.rating || matchedDefault?.rating || 4.9,
               consultations: a.totalConsultations || matchedDefault?.consultations || "10K+",
-              image: a.image || matchedDefault?.image || defaultAstrologers[0].image,
+              image: a.image || matchedDefault?.image || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80",
               specialty: a.specialty || matchedDefault?.specialty || "Vedic Guidance & Upay",
               badge: a.category || matchedDefault?.badge || "Vedic Expert",
               languages: a.languages && a.languages.length > 0 ? a.languages : (matchedDefault?.languages || ["Hindi", "English"]),
@@ -264,8 +264,9 @@ export default function AIChatPage() {
 
           setAstrologers(mapped);
           setSelectedAstrologer((prev) => {
+            if (!prev) return mapped[0] || null;
             const found = mapped.find(m => m.id === prev.id || m.name === prev.name);
-            return found || mapped[0];
+            return found || mapped[0] || null;
           });
         }
       } catch (err) {
@@ -301,7 +302,7 @@ export default function AIChatPage() {
   }, [astrologers]);
 
   // Current active chat messages
-  const activeMessages = chatHistories[selectedAstrologer.id] || [
+  const activeMessages = selectedAstrologer ? (chatHistories[selectedAstrologer.id] || [
     {
       id: `welcome-${selectedAstrologer.id}`,
       sender: "ai",
@@ -310,7 +311,7 @@ export default function AIChatPage() {
       mantra: selectedAstrologer.mantra,
       timestamp: "Just now",
     }
-  ];
+  ]) : [];
 
   // Auto scroll to latest message
   useEffect(() => {
@@ -324,7 +325,7 @@ export default function AIChatPage() {
 
   const handleSend = async (textToSend?: string) => {
     const query = textToSend || inputText;
-    if (!query.trim() || isTyping) return;
+    if (!selectedAstrologer || !query.trim() || isTyping) return;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -373,6 +374,7 @@ export default function AIChatPage() {
   };
 
   const handleClearChat = () => {
+    if (!selectedAstrologer) return;
     const astroId = selectedAstrologer.id;
     const freshWelcomeMsg: ChatMessage = {
       id: `welcome-${astroId}-${Date.now()}`,
@@ -407,7 +409,7 @@ export default function AIChatPage() {
   // Combine chips: selected astrologer's customized questions
   const activeChips = Array.from(
     new Set([
-      ...(selectedAstrologer.chips || []),
+      ...(selectedAstrologer?.chips || []),
       "🔮 Mera aane wala samay kaisa rahega?",
       "💍 Meri shaadi kab tak hogi?",
       "💼 Nayi job ya promotion kab milega?",
@@ -420,7 +422,7 @@ export default function AIChatPage() {
     <MobileAppLayout 
       showBack={activeView === "chat"} 
       backTitle="Astrologers" 
-      title={activeView === "chat" ? selectedAstrologer.name : "Vedic Astrologers"}
+      title={activeView === "chat" && selectedAstrologer ? selectedAstrologer.name : "Vedic Astrologers"}
     >
       <div className="h-[calc(100dvh-130px)] max-w-xl mx-auto flex flex-col -my-2 relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-amber-300/80 shadow-xl bg-white">
         
@@ -578,7 +580,7 @@ export default function AIChatPage() {
             </div>
 
           </div>
-        ) : (
+        ) : selectedAstrologer ? (
           /* ======================================================== */
           /* VIEW 2: FULL-WIDTH CHAT CONVERSATION VIEW                */
           /* ======================================================== */
@@ -811,7 +813,7 @@ export default function AIChatPage() {
             </form>
 
           </div>
-        )}
+        ) : null}
 
         {/* ======================================================== */}
         {/* ASTROLOGER BIO POPUP MODAL                               */}

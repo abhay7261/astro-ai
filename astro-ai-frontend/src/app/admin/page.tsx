@@ -281,18 +281,16 @@ export default function AdminDashboard() {
         if (parsed.recurringAutoDebitAmount) setRecurringAutoDebitAmount(parsed.recurringAutoDebitAmount);
       }
 
-      const deletedAstrosStr = localStorage.getItem("astroai_deleted_astros");
-      const deletedAstros: string[] = deletedAstrosStr ? JSON.parse(deletedAstrosStr) : [];
       const savedAstros = localStorage.getItem("astroai_custom_astrologers");
       if (savedAstros !== null) {
         try {
           const parsed = JSON.parse(savedAstros);
           if (Array.isArray(parsed)) {
-            setAstrologers(parsed.filter((a: any) => !deletedAstros.includes(String(a.id))));
+            setAstrologers(parsed);
           }
         } catch (e) {}
       } else {
-        setAstrologers(astrologersData.filter((a) => !deletedAstros.includes(String(a.id))));
+        setAstrologers([]);
       }
 
       const deletedBotsStr = localStorage.getItem("astroai_deleted_bots");
@@ -310,19 +308,16 @@ export default function AdminDashboard() {
       const savedUsers = localStorage.getItem("astroai_users_list");
       if (savedUsers) setUsersList(JSON.parse(savedUsers));
 
-      const deletedReelsStr = localStorage.getItem("astroai_deleted_reels");
-      const deletedList: string[] = deletedReelsStr ? JSON.parse(deletedReelsStr) : [];
-
       const savedReelsLocal = localStorage.getItem("astroai_admin_reels");
       if (savedReelsLocal !== null) {
         try {
           const parsed = JSON.parse(savedReelsLocal);
           if (Array.isArray(parsed)) {
-            setReels(parsed.filter((r) => !deletedList.includes(String(r.id))));
+            setReels(parsed);
           }
         } catch (e) {}
       } else {
-        setReels(DEFAULT_ADMIN_REELS.filter((r) => !deletedList.includes(String(r.id))));
+        setReels([]);
       }
 
       const savedBannersLocal = localStorage.getItem("astroai_hero_banners");
@@ -350,12 +345,9 @@ export default function AdminDashboard() {
           poojasApi.getAppointments(),
         ]);
 
-        if (liveAstros.status === "fulfilled" && liveAstros.value && liveAstros.value.length > 0) {
-          const deletedAstrosStr = localStorage.getItem("astroai_deleted_astros");
-          const deletedAstros: string[] = deletedAstrosStr ? JSON.parse(deletedAstrosStr) : [];
-          const filtered = liveAstros.value.filter((a: any) => !deletedAstros.includes(String(a.id)));
-          setAstrologers(filtered);
-          localStorage.setItem("astroai_custom_astrologers", JSON.stringify(filtered));
+        if (liveAstros.status === "fulfilled" && Array.isArray(liveAstros.value)) {
+          setAstrologers(liveAstros.value);
+          localStorage.setItem("astroai_custom_astrologers", JSON.stringify(liveAstros.value));
         }
 
         if (livePoojas.status === "fulfilled" && livePoojas.value) {
@@ -392,25 +384,9 @@ export default function AdminDashboard() {
           }
         }
 
-        if (liveReels.status === "fulfilled" && liveReels.value) {
-          const deletedStr = localStorage.getItem("astroai_deleted_reels");
-          const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
-          const localStr = localStorage.getItem("astroai_admin_reels");
-
-          if (localStr !== null) {
-            // Local storage has explicit admin modifications
-            try {
-              const localParsed = JSON.parse(localStr);
-              if (Array.isArray(localParsed)) {
-                const filteredLocal = localParsed.filter((r: any) => !deletedList.includes(String(r.id)));
-                setReels(filteredLocal);
-              }
-            } catch (e) {}
-          } else {
-            // Fresh load: filter out deleted backend reels
-            const filteredBackend = liveReels.value.filter((r: any) => !deletedList.includes(String(r.id)));
-            setReels(filteredBackend);
-          }
+        if (liveReels.status === "fulfilled" && Array.isArray(liveReels.value)) {
+          setReels(liveReels.value);
+          localStorage.setItem("astroai_admin_reels", JSON.stringify(liveReels.value));
         }
 
         if (liveUsers.status === "fulfilled" && liveUsers.value) {

@@ -24,137 +24,28 @@ interface Reel {
   comments: Comment[];
 }
 
-const FALLBACK_REAL_REELS: Reel[] = [
-  {
-    id: "reel-1792572437",
-    title: "✨ Brihaspati Gochar 2026 Aur Bhagya Uday Upay",
-    astrologerName: "Pandit Devratna Sharma",
-    astrologerAvatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80",
-    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792572437/astroai_reels/lpuw6fhynyw8diizu4ou.mp4",
-    likes: 342,
-    commentsCount: 28,
-    tags: ["#BhagyaUday", "#DailyUpay"],
-    comments: [
-      { id: "c1", userName: "Sunil Verma", text: "Guru ji ye upay kis din se shuru karna chahiye?", timeAgo: "2h ago" },
-    ],
-  },
-  {
-    id: "reel-1792572347",
-    title: "🔮 Graha Dosh Nivaran & Kundli Rahasya",
-    astrologerName: "Acharya Rameshwar",
-    astrologerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
-    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792572347/astroai_reels/uqa9wrwyv1mb3owt3vvq.mp4",
-    likes: 418,
-    commentsCount: 35,
-    tags: ["#GrahaDosh", "#VedicAstro"],
-    comments: [],
-  },
-  {
-    id: "reel-1792561807",
-    title: "💰 Ghar Me Dhan Vriddhi Ke Vastu Tips",
-    astrologerName: "Pandit Radheshyam Joshi",
-    astrologerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80",
-    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792561807/astroai_reels/ezqzdvbyocqya7jwuvqh.mp4",
-    likes: 580,
-    commentsCount: 42,
-    tags: ["#DhanVriddhi", "#VastuTips"],
-    comments: [],
-  },
-  {
-    id: "reel-1792561133",
-    title: "❤️ Kundli Me Vivah Yog Aur Prem Sambandh",
-    astrologerName: "Dr. Ananya Mukherjee",
-    astrologerAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80",
-    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792561133/astroai_reels/lfosgpjbr1rsc0k1r2ca.mp4",
-    likes: 695,
-    commentsCount: 54,
-    tags: ["#VivahYog", "#KundliMilan"],
-    comments: [],
-  },
-  {
-    id: "reel-1792485818",
-    title: "🪐 Shani Sade Sati Ke 3 Asarkari Upay",
-    astrologerName: "Acharya Vidyadhar Shastri",
-    astrologerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
-    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792485818/astroai_reels/dpv7hdnbdbgmysa3myfu.mp4",
-    likes: 890,
-    commentsCount: 67,
-    tags: ["#ShaniSadeSati", "#ShaniUpay"],
-    comments: [],
-  },
-];
-
 export default function AstroReelsSection() {
-  const [reels, setReels] = useState<Reel[]>(FALLBACK_REAL_REELS);
+  const [reels, setReels] = useState<Reel[]>([]);
   const [likedReels, setLikedReels] = useState<Record<string, boolean>>({});
   const [activeReelForComments, setActiveReelForComments] = useState<Reel | null>(null);
   const [newCommentText, setNewCommentText] = useState("");
   const [shareToast, setShareToast] = useState(false);
 
-  // Fetch live reels from backend API & Admin LocalStorage (Preserving all eligible older and newer reels)
+  // Fetch live reels from backend API & MongoDB Atlas (Zero Fake/Dummy Fallbacks)
   const fetchReels = async () => {
     try {
-      const deletedStr = localStorage.getItem("astroai_deleted_reels");
-      const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
-      const localAdminStr = localStorage.getItem("astroai_admin_reels");
-
-      let combined: any[] = [];
-      if (localAdminStr !== null) {
-        try {
-          const parsed = JSON.parse(localAdminStr);
-          if (Array.isArray(parsed)) {
-            combined = [...parsed];
-          }
-        } catch (e) {}
-      }
-
-      // Fetch live reels from Render/MongoDB Atlas backend
-      try {
-        const liveReels = await reelsApi.getAll();
-        if (Array.isArray(liveReels) && liveReels.length > 0) {
-          liveReels.forEach((lr: any) => {
-            const isDel = deletedList.includes(String(lr.id)) || deletedList.includes(String(lr.reelId));
-            const exists = combined.some(
-              (it) =>
-                String(it.id) === String(lr.id) ||
-                String(it.reelId || "") === String(lr.id) ||
-                (lr.videoUrl && it.videoUrl === lr.videoUrl)
-            );
-            if (!isDel && !exists) {
-              combined.push(lr);
-            }
-          });
-        }
-      } catch (e) {}
-
-      // Also merge fallback real Cloudinary dataset so older reels are always available
-      FALLBACK_REAL_REELS.forEach((fb) => {
-        const isDel = deletedList.includes(fb.id);
-        const exists = combined.some(
-          (it) => String(it.id) === fb.id || (fb.videoUrl && it.videoUrl === fb.videoUrl)
-        );
-        if (!isDel && !exists) {
-          combined.push(fb);
-        }
-      });
-
-      // Filter out deleted items
-      const filtered = combined.filter(
-        (r) => !deletedList.includes(String(r.id)) && !deletedList.includes(String(r.reelId))
-      );
-
-      if (filtered.length > 0) {
-        const formatted: Reel[] = filtered.map((lr: any, idx: number) => ({
+      const liveReels = await reelsApi.getAll();
+      if (Array.isArray(liveReels) && liveReels.length > 0) {
+        const formatted: Reel[] = liveReels.map((lr: any, idx: number) => ({
           id: String(lr.id || lr.reelId || `reel-${idx}`),
           title: lr.title,
           astrologerName: lr.astrologerName || "AstroAI Creator",
           astrologerAvatar:
             lr.astrologerAvatar ||
-            FALLBACK_REAL_REELS[idx % FALLBACK_REAL_REELS.length]?.astrologerAvatar ||
             "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&q=80",
           videoUrl: lr.videoUrl,
-          likes: lr.likes || 1200,
-          commentsCount: lr.commentsCount || 45,
+          likes: Number(lr.likes) || 0,
+          commentsCount: Number(lr.commentsCount) || 0,
           tags: Array.isArray(lr.tags) && lr.tags.length > 0 ? lr.tags : lr.tag ? [lr.tag] : ["#VedicTips"],
           comments: lr.comments || [],
         }));
@@ -163,7 +54,8 @@ export default function AstroReelsSection() {
         setReels([]);
       }
     } catch (err) {
-      console.warn("Using offline reels fallback", err);
+      console.warn("Reels fetch error:", err);
+      setReels([]);
     }
   };
 

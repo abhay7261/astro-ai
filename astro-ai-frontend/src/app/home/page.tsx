@@ -86,53 +86,47 @@ export default function HomePage() {
   useEffect(() => {
     const loadFeatured = async () => {
       try {
-        const deletedAstrosStr = localStorage.getItem("astroai_deleted_astros");
-        const deletedAstros: string[] = deletedAstrosStr ? JSON.parse(deletedAstrosStr) : [];
-        const saved = localStorage.getItem("astroai_custom_astrologers");
-
-        if (saved !== null) {
-          // Admin has explicitly configured or deleted astrologers locally
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            const nonDeleted = parsed
-              .filter((a: any) => !deletedAstros.includes(String(a.id)))
-              .map((a: any) => ({
-                id: a.id,
-                name: a.name,
-                title: a.title,
-                specialty: a.specialty,
-                experience: a.experience,
-                rating: String(a.rating || "4.9"),
-                consults: a.totalConsultations || "10k+",
-                image: a.image,
-              }));
-            setFeaturedAstrologers(nonDeleted.slice(0, 3));
-            return;
-          }
-        }
-
-        // On a new device or if localStorage is empty, fetch live from backend API
+        // 1. Fetch live astrologers directly from backend MongoDB Atlas (Single Source of Truth)
         try {
           const live = await astrologersApi.getAll();
-          if (Array.isArray(live) && live.length > 0) {
-            const nonDeleted = live
-              .filter((a: any) => !deletedAstros.includes(String(a.id)))
-              .map((a: any) => ({
-                id: a.id,
-                name: a.name,
-                title: a.title,
-                specialty: a.specialty,
-                experience: a.experience,
-                rating: String(a.rating || "4.9"),
-                consults: a.totalConsultations || "10k+",
-                image: a.image,
-              }));
-            setFeaturedAstrologers(nonDeleted.slice(0, 3));
+          if (Array.isArray(live)) {
+            const formatted = live.map((a: any) => ({
+              id: a.id || a.astrologerId || a._id,
+              name: a.name,
+              title: a.title,
+              specialty: a.specialty,
+              experience: a.experience,
+              rating: String(a.rating || "4.9"),
+              consults: a.totalConsultations || "10k+",
+              image: a.image,
+            }));
+            setFeaturedAstrologers(formatted.slice(0, 3));
+            localStorage.setItem("astroai_custom_astrologers", JSON.stringify(live));
             return;
           }
         } catch (e) {}
 
-        // If no custom astrologers exist anywhere, keep empty (NO fake dummy astrologers)
+        // 2. Offline fallback if network is unreachable
+        const saved = localStorage.getItem("astroai_custom_astrologers");
+        if (saved !== null) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            const formatted = parsed.map((a: any) => ({
+              id: a.id || a.astrologerId || a._id,
+              name: a.name,
+              title: a.title,
+              specialty: a.specialty,
+              experience: a.experience,
+              rating: String(a.rating || "4.9"),
+              consults: a.totalConsultations || "10k+",
+              image: a.image,
+            }));
+            setFeaturedAstrologers(formatted.slice(0, 3));
+            return;
+          }
+        }
+
+        // If no astrologers exist anywhere, keep empty (Zero fake dummy astrologers)
         setFeaturedAstrologers([]);
       } catch (e) {
         console.warn("Featured astrologers load error", e);

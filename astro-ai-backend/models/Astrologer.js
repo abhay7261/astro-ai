@@ -23,140 +23,22 @@ const astrologerSchema = new mongoose.Schema(
 export const MongoAstrologer =
   mongoose.models.Astrologer || mongoose.model("Astrologer", astrologerSchema, "astrologers");
 
-export const DEFAULT_ASTROLOGERS = [
-  {
-    id: "1",
-    astrologerId: "1",
-    name: "Acharya Vidyadhar Shastri",
-    title: "Chief Vedic Pandit & Kundli Expert",
-    category: "Kundli",
-    experience: "18+ Yrs Exp",
-    languages: ["Hindi", "Sanskrit", "English"],
-    rating: 4.95,
-    totalConsultations: "34.5K+",
-    pricePerMin: 25,
-    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80",
-    specialty: "Lagna Dosha, Graha Shanti & Kundli",
-    isOnline: true,
-  },
-  {
-    id: "2",
-    astrologerId: "2",
-    name: "Dr. Ananya Mukherjee",
-    title: "Love & Marriage Compatibility Guru",
-    category: "Love",
-    experience: "12+ Yrs Exp",
-    languages: ["Hindi", "English", "Bengali"],
-    rating: 4.92,
-    totalConsultations: "28.1K+",
-    pricePerMin: 20,
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
-    specialty: "Kundli Milan, Vivah Yog & Relationship",
-    isOnline: true,
-  },
-  {
-    id: "3",
-    astrologerId: "3",
-    name: "Pandit Radheshyam Joshi",
-    title: "Career & Business Astrology Specialist",
-    category: "Career",
-    experience: "15+ Yrs Exp",
-    languages: ["Hindi", "Gujarati"],
-    rating: 4.88,
-    totalConsultations: "22.4K+",
-    pricePerMin: 22,
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-    specialty: "Job Timing, Wealth & Dhan Yog",
-    isOnline: true,
-  },
-  {
-    id: "4",
-    astrologerId: "4",
-    name: "Maa Gayatri Devi",
-    title: "Karmic Healer & Prashna Kundli",
-    category: "Kundli",
-    experience: "21+ Yrs Exp",
-    languages: ["Hindi", "English"],
-    rating: 4.98,
-    totalConsultations: "45.2K+",
-    pricePerMin: 30,
-    image: "https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=400&q=80",
-    specialty: "Shani Sade Sati, Rahu-Ketu & Dosha",
-    isOnline: true,
-  },
-  {
-    id: "5",
-    astrologerId: "5",
-    name: "Guruji Devendra Nath",
-    title: "Vastu Shastra & Gemstone Expert",
-    category: "Vastu",
-    experience: "14+ Yrs Exp",
-    languages: ["Hindi", "Marathi"],
-    rating: 4.89,
-    totalConsultations: "18.7K+",
-    pricePerMin: 18,
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
-    specialty: "Home Vastu, Ratna Salah & Swasthya",
-    isOnline: true,
-  },
-  {
-    id: "6",
-    astrologerId: "6",
-    name: "Acharya Priyadarshini",
-    title: "Relationship & Tarot Astrologer",
-    category: "Love",
-    experience: "10+ Yrs Exp",
-    languages: ["Hindi", "English"],
-    rating: 4.85,
-    totalConsultations: "15.3K+",
-    pricePerMin: 18,
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-    specialty: "Relationship Healing & Intuitive Tarot",
-    isOnline: true,
-  },
-];
-
-export let astrologersStore = loadData("astrologers.json", DEFAULT_ASTROLOGERS);
-
-// If file loaded empty array, fill it with default astrologers
-if (!astrologersStore || astrologersStore.length === 0) {
-  astrologersStore = [...DEFAULT_ASTROLOGERS];
-  saveData("astrologers.json", astrologersStore);
-}
+export let astrologersStore = loadData("astrologers.json", []);
 
 export const AstrologerModel = {
   find: async (query = {}) => {
     try {
       if (mongoose.connection.readyState === 1) {
-        let atlasAstros = await MongoAstrologer.find(query).lean();
-        if (atlasAstros && atlasAstros.length > 0) {
-          return atlasAstros.map((a) => ({
-            ...a,
-            id: a.astrologerId || a._id.toString(),
-          }));
-        } else if (DEFAULT_ASTROLOGERS.length > 0) {
-          try {
-            await MongoAstrologer.insertMany(DEFAULT_ASTROLOGERS);
-            atlasAstros = await MongoAstrologer.find(query).lean();
-            if (atlasAstros && atlasAstros.length > 0) {
-              return atlasAstros.map((a) => ({
-                ...a,
-                id: a.astrologerId || a._id.toString(),
-              }));
-            }
-          } catch (seedErr) {
-            console.warn("⚠️ [Astrologer Model] Atlas auto-seed fallback:", seedErr.message);
-          }
-        }
+        const atlasAstros = await MongoAstrologer.find(query).lean();
+        return (atlasAstros || []).map((a) => ({
+          ...a,
+          id: a.astrologerId || a._id.toString(),
+        }));
       }
     } catch (e) {
-      console.warn("⚠️ [Astrologer Model] Atlas read fallback:", e.message);
+      console.warn("⚠️ [Astrologer Model] Atlas read error:", e.message);
     }
-    if (!astrologersStore || astrologersStore.length === 0) {
-      astrologersStore = [...DEFAULT_ASTROLOGERS];
-      saveData("astrologers.json", astrologersStore);
-    }
-    return astrologersStore;
+    return astrologersStore || [];
   },
 
   findById: async (id) => {

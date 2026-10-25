@@ -45,136 +45,9 @@ export interface ReelItem {
   }[];
 }
 
-// 5 Real Cloudinary Uploaded Reels Dataset
-const FALLBACK_REAL_REELS: ReelItem[] = [
-  {
-    id: "reel-1792572437",
-    reelId: "reel-1792572437",
-    title: "Bhagya Uday Ke Saral Vedic Upay",
-    description: "Apne bhagya ko jagane ke liye daily subah karein ye 1 saral upay.",
-    astrologerName: "Dev Guru Shastri",
-    astrologerTitle: "Vedic & Career Expert",
-    astrologerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-    astrologerSpecialty: "Dhan & Bhagya Yog",
-    astrologerExp: "15+ Yrs Exp",
-    themeColor: "#F59E0B",
-    bgGradient: "from-[#451A03] via-[#78350F] to-[#1C1917]",
-    symbol: "🪙",
-    mantra: "ॐ गुरुवे नमः",
-    audioName: "Original Audio • Dev Guru Vedic Chants",
-    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792572437/astroai_reels/lpuw6fhynyw8diizu4ou.mp4",
-    likes: 342,
-    commentsCount: 28,
-    sharesCount: 75,
-    tag: "#BhagyaUday",
-    tags: ["#BhagyaUday", "#DailyUpay", "#AstroAI"],
-    seriesName: "Vedic Bhagya Series",
-    seriesPart: 1,
-    comments: [
-      { id: "1", userName: "Sunil Verma", userAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80", text: "Guru ji ye upay kis din se shuru karna chahiye?", timeAgo: "2h ago", likes: 12 },
-    ],
-  },
-  {
-    id: "reel-1792572347",
-    reelId: "reel-1792572347",
-    title: "Graha Dosh Nivaran & Kundli Rahasya",
-    description: "Kundli me graha dosh shanti ke mool mantra aur saral upay.",
-    astrologerName: "Acharya Rameshwar",
-    astrologerTitle: "Senior Jyotish Ratna",
-    astrologerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80",
-    astrologerSpecialty: "Kundli Milan & Dosh",
-    astrologerExp: "18+ Yrs Exp",
-    themeColor: "#38BDF8",
-    bgGradient: "from-[#082F49] via-[#0C4A6E] to-[#1E1B4B]",
-    symbol: "🔮",
-    mantra: "ॐ नवग्रहाय नमः",
-    audioName: "Original Audio • Sacred Temple Bells",
-    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792572347/astroai_reels/uqa9wrwyv1mb3owt3vvq.mp4",
-    likes: 418,
-    commentsCount: 35,
-    sharesCount: 92,
-    tags: ["#GrahaDosh", "#VedicAstrology", "#ShantiUpay"],
-    seriesName: "Vedic Bhagya Series",
-    seriesPart: 2,
-    comments: [],
-  },
-  {
-    id: "reel-1792561807",
-    reelId: "reel-1792561807",
-    title: "Ghar Me Dhan Vriddhi Ke Vastu Tips",
-    description: "Tijori aur ghar ki disha me ye parivartan layega dhan yoga.",
-    astrologerName: "Pandit Radheshyam Joshi",
-    astrologerTitle: "Vastu & Dhan Yog Specialist",
-    astrologerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-    astrologerSpecialty: "Dhan Yog & Vastu",
-    astrologerExp: "15+ Yrs Exp",
-    themeColor: "#10B981",
-    bgGradient: "from-[#064E3B] via-[#065F46] to-[#022C22]",
-    symbol: "💰",
-    mantra: "ॐ श्रीं सिद्ध लक्ष्म्यै नमः",
-    audioName: "Maha Lakshmi Stotram • Sacred Chants",
-    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792561807/astroai_reels/ezqzdvbyocqya7jwuvqh.mp4",
-    likes: 580,
-    commentsCount: 42,
-    sharesCount: 120,
-    tags: ["#DhanVriddhi", "#VastuTips", "#LakshmiYog"],
-    seriesName: "Vastu & Dhan Yog",
-    seriesPart: 1,
-    comments: [],
-  },
-  {
-    id: "reel-1792561133",
-    reelId: "reel-1792561133",
-    title: "Kundli Me Vivah Yog Aur Prem Sambandh",
-    description: "Shighra vivah ke liye Shukra aur Brihaspati ki anukoolta upay.",
-    astrologerName: "Dr. Ananya Mukherjee",
-    astrologerTitle: "Love & Marriage Counselor",
-    astrologerAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
-    astrologerSpecialty: "Love & Marriage Compatibility",
-    astrologerExp: "12+ Yrs Exp",
-    themeColor: "#E11D48",
-    bgGradient: "from-[#4C0519] via-[#831843] to-[#1E1B4B]",
-    symbol: "❤️",
-    mantra: "ॐ क्लीं कृष्णाय नमः",
-    audioName: "Vivah Sanskar • Melodious Flute",
-    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792561133/astroai_reels/lfosgpjbr1rsc0k1r2ca.mp4",
-    likes: 695,
-    commentsCount: 54,
-    sharesCount: 160,
-    tags: ["#VivahYog", "#KundliMilan", "#LoveMarriage"],
-    seriesName: "Vivah & Prem Yog",
-    seriesPart: 1,
-    comments: [],
-  },
-  {
-    id: "reel-1792485818",
-    reelId: "reel-1792485818",
-    title: "Shani Sade Sati Ke 3 Asarkari Upay",
-    description: "Shani Dev ke dushprabhav ko shanti me badalney ke 3 achook upay.",
-    astrologerName: "Acharya Vidyadhar Shastri",
-    astrologerTitle: "Vedic Astrologer",
-    astrologerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80",
-    astrologerSpecialty: "Lagna & Shani Shanti",
-    astrologerExp: "18+ Yrs Exp",
-    themeColor: "#4B5563",
-    bgGradient: "from-[#0F172A] via-[#1E1B4B] to-[#31102A]",
-    symbol: "🪐",
-    mantra: "ॐ शं शनैश्चराय नमः",
-    audioName: "Original Audio • Shani Shanti Chants",
-    videoUrl: "https://res.cloudinary.com/kah2bbjm/video/upload/v1792485818/astroai_reels/dpv7hdnbdbgmysa3myfu.mp4",
-    likes: 890,
-    commentsCount: 67,
-    sharesCount: 210,
-    tags: ["#ShaniSadeSati", "#ShaniUpay", "#VedicUpay"],
-    seriesName: "Shani Dosh Nivaran",
-    seriesPart: 1,
-    comments: [],
-  },
-];
-
 export default function InstagramReelsPlayer() {
   const router = useRouter();
-  const [allReels, setAllReels] = useState<ReelItem[]>(FALLBACK_REAL_REELS);
+  const [allReels, setAllReels] = useState<ReelItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
@@ -265,62 +138,17 @@ export default function InstagramReelsPlayer() {
   const reelRefs = useRef<(HTMLElement | null)[]>([]);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
-  // Fetch Live Reels and Merge (Ensuring Older and Newer Reels are all preserved)
+  // Fetch Live Reels directly from MongoDB Atlas Backend (Zero Fake/Dummy Fallbacks)
   const fetchReels = useCallback(async () => {
     try {
-      const deletedStr = localStorage.getItem("astroai_deleted_reels");
-      const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
-
-      let adminReels: any[] = [];
-      try {
-        const localStr = localStorage.getItem("astroai_admin_reels");
-        if (localStr) {
-          const parsed = JSON.parse(localStr);
-          if (Array.isArray(parsed)) adminReels = parsed;
-        }
-      } catch (e) {}
-
       let liveReels: any[] = [];
       try {
         const res = await reelsApi.getAll();
         if (Array.isArray(res)) liveReels = res;
       } catch (e) {}
 
-      // Combine admin-uploaded local reels and live backend database reels
-      const combined: any[] = [...adminReels];
-
-      // Merge backend reels without duplicates
-      liveReels.forEach((br: any) => {
-        const isDeleted = deletedList.includes(String(br.id)) || deletedList.includes(String(br.reelId));
-        const alreadyExists = combined.some(
-          (cr) =>
-            String(cr.id) === String(br.id) ||
-            String(cr.id) === String(br.reelId) ||
-            (br.videoUrl && cr.videoUrl === br.videoUrl)
-        );
-        if (!isDeleted && !alreadyExists) {
-          combined.push(br);
-        }
-      });
-
-      // Also merge fallback real Cloudinary dataset if backend didn't return them yet
-      FALLBACK_REAL_REELS.forEach((fb) => {
-        const isDeleted = deletedList.includes(fb.id);
-        const alreadyExists = combined.some(
-          (cr) => String(cr.id) === fb.id || (fb.videoUrl && cr.videoUrl === fb.videoUrl)
-        );
-        if (!isDeleted && !alreadyExists) {
-          combined.push(fb);
-        }
-      });
-
-      // Filter out any explicitly deleted records
-      const finalRaw = combined.filter(
-        (r: any) => !deletedList.includes(String(r.id)) && !deletedList.includes(String(r.reelId))
-      );
-
-      if (finalRaw.length > 0) {
-        const mapped: ReelItem[] = finalRaw.map((r: any, idx: number) => ({
+      if (liveReels.length > 0) {
+        const mapped: ReelItem[] = liveReels.map((r: any, idx: number) => ({
           id: String(r.id || r.reelId || `reel-${idx}`),
           reelId: String(r.reelId || r.id || `reel-${idx}`),
           title: r.title || "Vedic Astro Upay & Prediction",
@@ -337,9 +165,9 @@ export default function InstagramReelsPlayer() {
           symbol: r.symbol || "✨",
           mantra: r.mantra || "ॐ शांति शांति शांतिः",
           audioName: r.audioName || "Original Audio • AstroAI Vedic Chants",
-          likes: Number(r.likes) || 120,
-          commentsCount: Number(r.commentsCount) || 15,
-          sharesCount: Number(r.sharesCount) || 30,
+          likes: Number(r.likes) || 0,
+          commentsCount: Number(r.commentsCount) || 0,
+          sharesCount: Number(r.sharesCount) || 0,
           tags: r.tags || (r.tag ? [r.tag] : ["#DailyUpay", "#AstroReels"]),
           videoUrl: r.videoUrl,
           seriesName: r.seriesName || "",
@@ -353,6 +181,7 @@ export default function InstagramReelsPlayer() {
       }
     } catch (e) {
       console.warn("Reels fetch error:", e);
+      setAllReels([]);
     }
   }, []);
 

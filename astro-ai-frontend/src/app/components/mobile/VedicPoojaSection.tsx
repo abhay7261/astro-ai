@@ -20,18 +20,12 @@ const DEFAULT_POOJA_OPTIONS = [
 
 export default function VedicPoojaSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [panditsList, setPanditsList] = useState<string[]>([
-    "Acharya Vidyadhar Shastri (Chief Vedic Pandit)",
-    "Pandit Radheshyam Joshi (Career & Wealth Specialist)",
-    "Dr. Ananya Mukherjee (Vivah & Kundli Guru)",
-    "Maa Gayatri Devi (Graha Shanti & Dosha Healer)",
-    "Guruji Devendra Nath (Vastu & Gemstone Expert)",
-  ]);
+  const [panditsList, setPanditsList] = useState<string[]>([]);
 
   const [poojasList, setPoojasList] = useState(DEFAULT_POOJA_OPTIONS);
   const [selectedPoojaName, setSelectedPoojaName] = useState(DEFAULT_POOJA_OPTIONS[0].name);
   const [customPoojaName, setCustomPoojaName] = useState("");
-  const [selectedPandit, setSelectedPandit] = useState("Acharya Vidyadhar Shastri (Chief Vedic Pandit)");
+  const [selectedPandit, setSelectedPandit] = useState("");
   const [customPandit, setCustomPandit] = useState("");
   const [isCustomPandit, setIsCustomPandit] = useState(false);
 
@@ -56,7 +50,7 @@ export default function VedicPoojaSection() {
           poojasApi.getAll(),
         ]);
 
-        if (liveAstros.status === "fulfilled" && Array.isArray(liveAstros.value) && liveAstros.value.length > 0) {
+        if (liveAstros.status === "fulfilled" && Array.isArray(liveAstros.value)) {
           const names = liveAstros.value.map((a: any) => `${a.name} (${a.title || "Vedic Pandit"})`);
           setPanditsList(names);
           if (names.length > 0) setSelectedPandit(names[0]);
