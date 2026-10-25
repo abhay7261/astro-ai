@@ -64,6 +64,17 @@ export async function seedAtlasIfEmpty() {
         console.log(`🍃 [MongoDB Atlas] Seeded ${reelsData.length} reels into 'reels' collection!`);
       }
     }
+
+    // 5. Seed Poojas
+    const poojasCol = db.collection("poojas");
+    const poojaCount = await poojasCol.countDocuments();
+    if (poojaCount === 0) {
+      const poojasData = loadData("poojas.json", []);
+      if (poojasData.length > 0) {
+        await poojasCol.insertMany(poojasData.map(({ id, ...rest }) => ({ ...rest, poojaId: id })));
+        console.log(`🍃 [MongoDB Atlas] Seeded ${poojasData.length} Vedic Poojas into 'poojas' collection!`);
+      }
+    }
   } catch (err) {
     console.warn("⚠️ [MongoDB Atlas] Seed warning:", err.message);
   }

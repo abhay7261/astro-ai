@@ -197,6 +197,27 @@ export const AstrologerModel = {
     return newAstro;
   },
 
+  updateById: async (id, data) => {
+    try {
+      if (mongoose.connection.readyState === 1) {
+        await MongoAstrologer.updateOne(
+          { $or: [{ astrologerId: id }, { _id: mongoose.isValidObjectId(id) ? id : null }] },
+          { $set: data }
+        );
+      }
+    } catch (e) {
+      console.warn("⚠️ [Astrologer Model] Atlas update fallback:", e.message);
+    }
+
+    const idx = astrologersStore.findIndex((a) => a.id === id || String(a.astrologerId) === String(id));
+    if (idx !== -1) {
+      astrologersStore[idx] = { ...astrologersStore[idx], ...data };
+      saveData("astrologers.json", astrologersStore);
+      return astrologersStore[idx];
+    }
+    return null;
+  },
+
   deleteById: async (id) => {
     try {
       if (mongoose.connection.readyState === 1) {

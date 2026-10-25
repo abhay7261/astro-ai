@@ -45,7 +45,27 @@ export const addAstrologer = async (req, res) => {
   }
 };
 
-// 3. DELETE Astrologer
+// 3. PUT Update/Edit Astrologer
+export const updateAstrologer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await AstrologerModel.updateById(id, req.body);
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: "Astrologer nahi mila!" });
+    }
+
+    res.json({
+      success: true,
+      message: "Astrologer details successfully update ho gayi hain! ✨",
+      astrologer: updated,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// 4. DELETE Astrologer
 export const deleteAstrologer = async (req, res) => {
   try {
     const { id } = req.params;

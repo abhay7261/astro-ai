@@ -1,0 +1,116 @@
+[
+  {
+    "id": "pooja-1",
+    "poojaId": "pooja-1",
+    "name": "Maha Mrityunjaya Anushthan",
+    "subtitle": "Aayu Vriddhi & Gambhir Rog Mukti Havan",
+    "deity": "Bhagwan Shiv",
+    "category": "Health",
+    "duration": "2-3 Ghante",
+    "price": 2100,
+    "panditName": "Acharya Vidyadhar Shastri",
+    "image": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80",
+    "benefits": [
+      "Akal mrityu bhay se mukti",
+      "Arogya evam aayu me vriddhi",
+      "Shiva Sahasranama paath"
+    ],
+    "description": "Vedic parampara ke anusaar 1100 Maha Mrityunjaya mantra jaap aur ghrut aahuti sahit shanti havan.",
+    "isActive": true
+  },
+  {
+    "id": "pooja-2",
+    "poojaId": "pooja-2",
+    "name": "Rudrabhishek & Kalsarp Dosh Shanti",
+    "subtitle": "Kaal Sarp & Graha Badha Nivaran",
+    "deity": "Mahadev",
+    "category": "Dosha",
+    "duration": "1.5 Ghanta",
+    "price": 1500,
+    "panditName": "Pandit Radheshyam Joshi",
+    "image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
+    "benefits": [
+      "Kaal Sarp dosh nivaran",
+      "Mansik tanaav se mukti",
+      "Panchamrit Abhishek live darshan"
+    ],
+    "description": "Shivalinga par panchamrit, gangajal, belpatra aur shubh dravyon se abhishek kar dosh mukti sankalp.",
+    "isActive": true
+  },
+  {
+    "id": "pooja-3",
+    "poojaId": "pooja-3",
+    "name": "Navagraha Shanti & Mahahavan",
+    "subtitle": "Shani Sade Sati & Rahu-Ketu Shanti",
+    "deity": "Navagraha Devta",
+    "category": "Dosha",
+    "duration": "2 Ghante",
+    "price": 2500,
+    "panditName": "Maa Gayatri Devi",
+    "image": "https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=600&q=80",
+    "benefits": [
+      "Shani Sade Sati shanti",
+      "Rahu-Ketu dosha nivaran",
+      "Sampoorna parivar kalyan"
+    ],
+    "description": "Kundli ke sabhi 9 graho ki shanti ke liye samidha aahuti aur navagraha stotra jaap.",
+    "isActive": true
+  },
+  {
+    "id": "pooja-4",
+    "poojaId": "pooja-4",
+    "name": "Kuber Lakshmi Dhan Prapti Pooja",
+    "subtitle": "Vyapar Vriddhi & Karz Mukti Anushthan",
+    "deity": "Maa Lakshmi & Kuber Dev",
+    "category": "Wealth",
+    "duration": "1.5 Ghanta",
+    "price": 1800,
+    "panditName": "Guruji Devendra Nath",
+    "image": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80",
+    "benefits": [
+      "Karobar aur vyapar me vriddhi",
+      "Karz mukti aur aarthik labh",
+      "Shree Yantra abhimantrit prasad"
+    ],
+    "description": "Kanakadhara stotra aur Shree Suktam ke 16 aahutiyon dwara dhan sthirta aur samriddhi poojan.",
+    "isActive": true
+  },
+  {
+    "id": "pooja-5",
+    "poojaId": "pooja-5",
+    "name": "Vivah Badha Nivaran & Manglik Shanti",
+    "subtitle": "Sheeghra Vivah & Jeevansathi Prapti",
+    "deity": "Devguru Brihaspati & Mangal Dev",
+    "category": "Marriage",
+    "duration": "2 Ghante",
+    "price": 2100,
+    "panditName": "Dr. Ananya Mukherjee",
+    "image": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80",
+    "benefits": [
+      "Shaadi me rukawato ka nidaan",
+      "Shubh jeevansathi yog",
+      "Mangal dosha nivaran havan"
+    ],
+    "description": "Brihaspati kripa prapti aur Manglik dosha shanti ke liye peele pushp aur vishesh ahuti sankalp.",
+    "isActive": true
+  },
+  {
+    "id": "pooja-6",
+    "poojaId": "pooja-6",
+    "name": "Ghar Vastu Shanti & Sukh Havan",
+    "subtitle": "Ghar me Nakaratmak Urja Nivaran",
+    "deity": "Vastu Purush",
+    "category": "Vastu",
+    "duration": "2.5 Ghante",
+    "price": 3100,
+    "panditName": "Guruji Devendra Nath",
+    "image": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
+    "benefits": [
+      "Ghar me sakaratmak urja pravah",
+      "Parivarik shanti aur samriddhi",
+      "Vastu kalash sthapana"
+    ],
+    "description": "Ishan kon me kalash sthapana sahit sampoorna ghar ka shuddhikaran aur havan anushthan.",
+    "isActive": true
+  }
+]

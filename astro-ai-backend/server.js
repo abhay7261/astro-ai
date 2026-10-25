@@ -10,6 +10,7 @@ import { UserModel } from "./models/User.js";
 import { AstrologerModel } from "./models/Astrologer.js";
 import { MandateModel } from "./models/Mandate.js";
 import { ReelModel } from "./models/Reel.js";
+import { PoojaModel, AppointmentModel } from "./models/Pooja.js";
 
 // Feature Routes
 import astrologerRoutes from "./routes/astrologerRoutes.js";
@@ -19,6 +20,7 @@ import reelRoutes from "./routes/reelRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
+import poojaRoutes from "./routes/poojaRoutes.js";
 
 dotenv.config();
 
@@ -72,8 +74,12 @@ app.get("/", (req, res) => {
 });
 
 // Database Live Status Route (For Sir & Testing)
-app.get("/api/v1/database/status", (req, res) => {
+app.get("/api/v1/database/status", async (req, res) => {
   const isMongoConnected = mongoose.connection.readyState === 1;
+  const [poojas, appointments] = await Promise.all([
+    PoojaModel.find().catch(() => []),
+    AppointmentModel.find().catch(() => []),
+  ]);
   res.json({
     success: true,
     engine: "MongoDB Community Database Engine",
@@ -84,13 +90,17 @@ app.get("/api/v1/database/status", (req, res) => {
     recordsCount: {
       totalUsers: UserModel.find().length,
       totalAstrologers: AstrologerModel.find().length,
+      totalPoojas: poojas.length,
+      totalAppointments: appointments.length,
       activeMandates: MandateModel.findSubscriptions().length,
       reelsVideos: ReelModel.find().length,
     },
     collections: {
       users: UserModel.find(),
       astrologers: AstrologerModel.find(),
-      subscriptions: MandateModel.findSubscriptions()
+      subscriptions: MandateModel.findSubscriptions(),
+      poojas,
+      appointments,
     },
     verifiedAt: new Date().toISOString()
   });
@@ -104,6 +114,7 @@ app.use("/api/v1/reels", reelRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/banners", bannerRoutes);
+app.use("/api/v1/poojas", poojaRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

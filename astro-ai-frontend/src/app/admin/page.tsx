@@ -6,10 +6,14 @@ import {
   Video, UploadCloud, Trash2, Heart, MessageCircle, Eye, 
   TrendingUp, Users, Crown, ArrowLeft, ArrowRight, CheckCircle2, Sparkles, Plus,
   Bot, ShieldAlert, DollarSign, Bell, UserX, UserCheck, ToggleLeft, ToggleRight,
-  Settings, Search, Star, Edit3, ShieldCheck, Lock, Unlock, KeyRound, AlertTriangle
+  Settings, Search, Star, Edit3, ShieldCheck, Lock, Unlock, KeyRound, AlertTriangle,
+  Calendar, Clock, Phone, Flame, Check, X, BookOpen, RefreshCw
 } from "lucide-react";
 import { astrologersData, Astrologer } from "../components/AstrologerSection";
-import { astrologersApi, aiBotsApi, subscriptionsApi, reelsApi, usersApi, adminApi, bannersApi, BannerItem } from "../services/apiClient";
+import { 
+  astrologersApi, aiBotsApi, subscriptionsApi, reelsApi, usersApi, 
+  adminApi, bannersApi, BannerItem, poojasApi, PoojaItem, PoojaAppointmentItem 
+} from "../services/apiClient";
 
 // Types
 interface AdminReel {
@@ -66,7 +70,7 @@ export default function AdminDashboard() {
   const [showChangePinModal, setShowChangePinModal] = useState(false);
   const [newPin, setNewPin] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"reels" | "astrologers" | "ai-bots" | "users" | "monetization" | "broadcast" | "banners">("astrologers");
+  const [activeTab, setActiveTab] = useState<"reels" | "astrologers" | "ai-bots" | "users" | "monetization" | "broadcast" | "banners" | "poojas">("astrologers");
 
   // ================= 1. REELS STATE =================
   const [reels, setReels] = useState<AdminReel[]>([]);
@@ -94,6 +98,8 @@ export default function AdminDashboard() {
   const [newAstroPrice, setNewAstroPrice] = useState(25);
   const [newAstroSpecialty, setNewAstroSpecialty] = useState("Kundli Dosh, Vivah");
   const [newAstroImage, setNewAstroImage] = useState("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80");
+  const [editingAstro, setEditingAstro] = useState<Astrologer | null>(null);
+  const [isSavingAstro, setIsSavingAstro] = useState(false);
 
   // ================= 3. AI ASTROLOGER BOTS STATE =================
   const [aiPersonas, setAiPersonas] = useState<AIPersona[]>([
@@ -222,6 +228,27 @@ export default function AdminDashboard() {
   const [bannerUploadSuccess, setBannerUploadSuccess] = useState(false);
   const [bannerError, setBannerError] = useState("");
 
+  // ================= 8. POOJAS & APPOINTMENTS STATE =================
+  const [poojasList, setPoojasList] = useState<PoojaItem[]>([]);
+  const [appointmentsList, setAppointmentsList] = useState<PoojaAppointmentItem[]>([]);
+  const [editingPooja, setEditingPooja] = useState<PoojaItem | null>(null);
+  const [isAddingPooja, setIsAddingPooja] = useState(false);
+  const [poojaSubTab, setPoojaSubTab] = useState<"catalog" | "appointments">("appointments");
+  const [appointmentStatusFilter, setAppointmentStatusFilter] = useState<string>("All");
+
+  // New Pooja Form State
+  const [newPoojaName, setNewPoojaName] = useState("");
+  const [newPoojaSubtitle, setNewPoojaSubtitle] = useState("");
+  const [newPoojaDeity, setNewPoojaDeity] = useState("Bhagwan Shiv");
+  const [newPoojaCategory, setNewPoojaCategory] = useState("Dosha");
+  const [newPoojaDuration, setNewPoojaDuration] = useState("1.5 - 2 Ghante");
+  const [newPoojaPrice, setNewPoojaPrice] = useState(2100);
+  const [newPoojaPandit, setNewPoojaPandit] = useState("Acharya Vidyadhar Shastri");
+  const [newPoojaImage, setNewPoojaImage] = useState("https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80");
+  const [newPoojaBenefits, setNewPoojaBenefits] = useState("Graha Shanti, Arogya, Parivar Kalyan");
+  const [newPoojaDesc, setNewPoojaDesc] = useState("Vedic shlok evam sampoorna anushthan vidhi ke sath sankalp.");
+  const [isSubmittingPooja, setIsSubmittingPooja] = useState(false);
+
   // Common UI State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -312,31 +339,31 @@ export default function AdminDashboard() {
     // Fetch live data from backend
     const loadBackendData = async () => {
       try {
-        const [liveAstros, liveConfig, liveBots, liveReels, liveUsers, liveBanners] = await Promise.allSettled([
+        const [liveAstros, liveConfig, liveBots, liveReels, liveUsers, liveBanners, livePoojas, liveApps] = await Promise.allSettled([
           astrologersApi.getAll(),
           subscriptionsApi.getConfig(),
           adminApi.getAIBots(),
           reelsApi.getAll(),
           usersApi.getAll(),
           bannersApi.getAll(),
+          poojasApi.getAll(),
+          poojasApi.getAppointments(),
         ]);
 
-        if (liveAstros.status === "fulfilled" && liveAstros.value) {
+        if (liveAstros.status === "fulfilled" && liveAstros.value && liveAstros.value.length > 0) {
           const deletedAstrosStr = localStorage.getItem("astroai_deleted_astros");
           const deletedAstros: string[] = deletedAstrosStr ? JSON.parse(deletedAstrosStr) : [];
-          const localAstrosStr = localStorage.getItem("astroai_custom_astrologers");
+          const filtered = liveAstros.value.filter((a: any) => !deletedAstros.includes(String(a.id)));
+          setAstrologers(filtered);
+          localStorage.setItem("astroai_custom_astrologers", JSON.stringify(filtered));
+        }
 
-          if (localAstrosStr !== null) {
-            try {
-              const parsed = JSON.parse(localAstrosStr);
-              if (Array.isArray(parsed)) {
-                setAstrologers(parsed.filter((a: any) => !deletedAstros.includes(String(a.id))));
-              }
-            } catch (e) {}
-          } else {
-            const filtered = liveAstros.value.filter((a: any) => !deletedAstros.includes(String(a.id)));
-            setAstrologers(filtered);
-          }
+        if (livePoojas.status === "fulfilled" && livePoojas.value) {
+          setPoojasList(livePoojas.value);
+        }
+
+        if (liveApps.status === "fulfilled" && liveApps.value) {
+          setAppointmentsList(liveApps.value);
         }
 
         if (liveConfig.status === "fulfilled" && liveConfig.value) {
@@ -665,6 +692,148 @@ export default function AdminDashboard() {
     // Sync with backend API
     astrologersApi.create(newAstro).catch(() => {});
     showToast(`Naye Astrologer "${newAstro.name}" add ho gaye hain! 🎉`);
+  };
+
+  // 3B. UPDATE / EDIT Astrologer (Live Backend Sync)
+  const handleUpdateAstrologer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAstro) return;
+
+    setIsSavingAstro(true);
+    try {
+      const updated = astrologers.map((a) => (String(a.id) === String(editingAstro.id) ? editingAstro : a));
+      saveAstrologers(updated);
+
+      await astrologersApi.update(editingAstro.id, editingAstro);
+      showToast(`Astrologer "${editingAstro.name}" details updated successfully in MongoDB! ✨`);
+      setEditingAstro(null);
+    } catch (err: any) {
+      showToast("Astrologer update error: " + (err?.message || "Failed"));
+    } finally {
+      setIsSavingAstro(false);
+    }
+  };
+
+  // ================= 8. POOJA & APPOINTMENTS HANDLERS =================
+  const handleCreatePooja = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPoojaName.trim()) {
+      showToast("Pooja ka naam likhna zaroori hai!");
+      return;
+    }
+
+    setIsSubmittingPooja(true);
+    const payload: Partial<PoojaItem> = {
+      name: newPoojaName.trim(),
+      subtitle: newPoojaSubtitle.trim() || "Vedic Anushthan",
+      deity: newPoojaDeity.trim() || "Bhagwan Shiv",
+      category: newPoojaCategory,
+      duration: newPoojaDuration.trim(),
+      price: Number(newPoojaPrice) || 2100,
+      panditName: newPoojaPandit.trim() || "Acharya Vidyadhar Shastri",
+      image: newPoojaImage.trim(),
+      benefits: newPoojaBenefits.split(",").map((s) => s.trim()).filter(Boolean),
+      description: newPoojaDesc.trim() || "Vedic vidhi-vidhan se sampoorna pooja anushthan.",
+      isActive: true,
+    };
+
+    try {
+      const res = await poojasApi.create(payload);
+      if (res && res.pooja) {
+        setPoojasList((prev) => [res.pooja, ...prev]);
+      } else {
+        const all = await poojasApi.getAll();
+        if (all) setPoojasList(all);
+      }
+      showToast(`Nayi Vedic Pooja "${payload.name}" MongoDB me save ho gayi! 🕉️`);
+      setIsAddingPooja(false);
+      setNewPoojaName("");
+      setNewPoojaSubtitle("");
+      setNewPoojaDesc("");
+    } catch (err: any) {
+      showToast("Pooja create karne me error: " + (err?.message || "Failed"));
+    } finally {
+      setIsSubmittingPooja(false);
+    }
+  };
+
+  const handleUpdatePooja = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPooja) return;
+
+    setIsSubmittingPooja(true);
+    try {
+      await poojasApi.update(editingPooja.id || editingPooja.poojaId, editingPooja);
+      setPoojasList((prev) =>
+        prev.map((p) => ((p.id === editingPooja.id || p.poojaId === editingPooja.poojaId) ? editingPooja : p))
+      );
+      showToast(`Pooja "${editingPooja.name}" MongoDB Atlas me update ho gayi! ✨`);
+      setEditingPooja(null);
+    } catch (err: any) {
+      showToast("Error updating pooja: " + (err?.message || "Failed"));
+    } finally {
+      setIsSubmittingPooja(false);
+    }
+  };
+
+  const handleDeletePooja = async (id: string, name: string) => {
+    if (!confirm(`Kya aap sach me Pooja "${name}" ko catalog se delete karna chahte hain?`)) return;
+    try {
+      await poojasApi.delete(id);
+      setPoojasList((prev) => prev.filter((p) => p.id !== id && p.poojaId !== id));
+      showToast(`Pooja "${name}" delete ho gayi.`);
+    } catch {
+      showToast("Error deleting pooja");
+    }
+  };
+
+  const handleTogglePoojaStatus = async (pooja: PoojaItem) => {
+    const nextStatus = !pooja.isActive;
+    const updatedPooja = { ...pooja, isActive: nextStatus };
+    setPoojasList((prev) =>
+      prev.map((p) => ((p.id === pooja.id || p.poojaId === pooja.poojaId) ? updatedPooja : p))
+    );
+    try {
+      await poojasApi.update(pooja.id || pooja.poojaId, { isActive: nextStatus });
+      showToast(`Pooja ${nextStatus ? "Active" : "Paused"} ho gayi.`);
+    } catch {
+      showToast("Status change error");
+    }
+  };
+
+  const handleUpdateAppointmentStatus = async (id: string, newStatus: "Pending" | "Confirmed" | "Completed" | "Cancelled") => {
+    try {
+      await poojasApi.updateAppointmentStatus(id, newStatus);
+      setAppointmentsList((prev) =>
+        prev.map((app) => ((app.id === id || app.appointmentId === id) ? { ...app, status: newStatus } : app))
+      );
+      showToast(`Appointment status badalkar "${newStatus}" ho gaya! ✅`);
+    } catch {
+      showToast("Status update karne me error aayi.");
+    }
+  };
+
+  const handleDeleteAppointment = async (id: string, devoteeName: string) => {
+    if (!confirm(`Kya aap Devotee "${devoteeName}" ka appointment record delete karna chahte hain?`)) return;
+    try {
+      await poojasApi.deleteAppointment(id);
+      setAppointmentsList((prev) => prev.filter((app) => app.id !== id && app.appointmentId !== id));
+      showToast(`Devotee "${devoteeName}" ka record delete kar diya gaya.`);
+    } catch {
+      showToast("Delete karne me error aayi.");
+    }
+  };
+
+  const handleRefreshAppointments = async () => {
+    try {
+      const apps = await poojasApi.getAppointments();
+      if (apps) {
+        setAppointmentsList(apps);
+        showToast("Fresh appointments MongoDB se load ho gaye! 🔄");
+      }
+    } catch {
+      showToast("Appointments refresh error");
+    }
   };
 
   // 4. DELETE AI Bot (Live Backend Sync & Exclusion Tracking)
@@ -1260,6 +1429,18 @@ export default function AdminDashboard() {
             <span>Hero Slider Banners ({adminBanners.length})</span>
           </button>
 
+          <button
+            onClick={() => setActiveTab("poojas")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeTab === "poojas"
+                ? "bg-terracotta text-white shadow-xs"
+                : "text-espresso/70 hover:bg-peach/50"
+            }`}
+          >
+            <span>🕉️</span>
+            <span>Vedic Poojas & Bookings ({appointmentsList.length})</span>
+          </button>
+
         </div>
       </div>
 
@@ -1610,7 +1791,7 @@ export default function AdminDashboard() {
                       <th className="py-3 px-3">Rate / Min</th>
                       <th className="py-3 px-3">Consults</th>
                       <th className="py-3 px-3">Status</th>
-                      <th className="py-3 px-3 text-right">Delete Action</th>
+                      <th className="py-3 px-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-peach/50">
@@ -1674,13 +1855,22 @@ export default function AdminDashboard() {
                         </td>
 
                         <td className="py-3 px-3 text-right">
-                          <button
-                            onClick={() => handleDeleteAstrologer(astro.id, astro.name)}
-                            className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 inline-flex items-center justify-center transition-colors active:scale-95 cursor-pointer"
-                            title="Delete Astrologer (Remove from app)"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => setEditingAstro(astro)}
+                              className="w-8 h-8 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 inline-flex items-center justify-center transition-colors active:scale-95 cursor-pointer"
+                              title="Edit Astrologer Details"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAstrologer(astro.id, astro.name)}
+                              className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 inline-flex items-center justify-center transition-colors active:scale-95 cursor-pointer"
+                              title="Delete Astrologer (Remove from app)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1688,6 +1878,171 @@ export default function AdminDashboard() {
                 </table>
               </div>
             </div>
+
+            {/* Edit Astrologer Modal */}
+            {editingAstro && (
+              <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+                <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-peach shadow-2xl space-y-4 my-8">
+                  <div className="flex items-center justify-between pb-3 border-b border-peach">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                        <Edit3 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-serif font-bold text-base text-espresso">Edit Astrologer Details</h4>
+                        <p className="text-[11px] text-espresso/60">Changes will sync directly to MongoDB Atlas</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setEditingAstro(null)}
+                      className="w-8 h-8 rounded-full hover:bg-peach/50 flex items-center justify-center text-espresso/60 hover:text-espresso"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleUpdateAstrologer} className="space-y-3.5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-espresso/70 mb-1">ASTROLOGER NAME</label>
+                      <input
+                        type="text"
+                        required
+                        value={editingAstro.name}
+                        onChange={(e) => setEditingAstro({ ...editingAstro, name: e.target.value })}
+                        className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">TITLE</label>
+                        <input
+                          type="text"
+                          value={editingAstro.title}
+                          onChange={(e) => setEditingAstro({ ...editingAstro, title: e.target.value })}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">CATEGORY</label>
+                        <select
+                          value={editingAstro.category}
+                          onChange={(e) => setEditingAstro({ ...editingAstro, category: e.target.value })}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        >
+                          <option value="Kundli">Kundli & Dosha</option>
+                          <option value="Love">Love & Vivah</option>
+                          <option value="Career">Career & Wealth</option>
+                          <option value="Vastu">Vastu & Ratna</option>
+                          <option value="Palmistry">Palmistry & Face</option>
+                          <option value="Tarot">Tarot Reading</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">RATE PER MIN (₹)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="500"
+                          value={editingAstro.pricePerMin}
+                          onChange={(e) => setEditingAstro({ ...editingAstro, pricePerMin: Number(e.target.value) })}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">EXPERIENCE</label>
+                        <input
+                          type="text"
+                          value={editingAstro.experience}
+                          onChange={(e) => setEditingAstro({ ...editingAstro, experience: e.target.value })}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-espresso/70 mb-1">SPECIALTY / EXPERTISE</label>
+                      <input
+                        type="text"
+                        value={editingAstro.specialty}
+                        onChange={(e) => setEditingAstro({ ...editingAstro, specialty: e.target.value })}
+                        className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-espresso/70 mb-1">PHOTO IMAGE URL</label>
+                      <input
+                        type="url"
+                        value={editingAstro.image}
+                        onChange={(e) => setEditingAstro({ ...editingAstro, image: e.target.value })}
+                        className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">RATING (out of 5)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="1"
+                          max="5"
+                          value={editingAstro.rating || 4.9}
+                          onChange={(e) => setEditingAstro({ ...editingAstro, rating: Number(e.target.value) })}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">CONSULTATIONS COUNT</label>
+                        <input
+                          type="text"
+                          value={editingAstro.totalConsultations || "1.2K+"}
+                          onChange={(e) => setEditingAstro({ ...editingAstro, totalConsultations: e.target.value })}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-espresso">
+                        <input
+                          type="checkbox"
+                          checked={editingAstro.isOnline}
+                          onChange={(e) => setEditingAstro({ ...editingAstro, isOnline: e.target.checked })}
+                          className="w-4 h-4 accent-terracotta rounded"
+                        />
+                        <span>Astrologer is Online for Consultations</span>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-peach">
+                      <button
+                        type="button"
+                        onClick={() => setEditingAstro(null)}
+                        className="px-4 py-2 rounded-xl border border-peach hover:bg-peach/30 text-xs font-bold text-espresso"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSavingAstro}
+                        className="px-5 py-2 rounded-xl bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold shadow-md inline-flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                      >
+                        {isSavingAstro ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        <span>Save Changes to MongoDB</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2720,6 +3075,702 @@ export default function AdminDashboard() {
               </div>
 
             </div>
+          </div>
+        )}
+        {/* =========================================================================
+            TAB 8: VEDIC POOJAS & PANDIT JI APPOINTMENTS CMS (MONGODB ATLAS CONNECTED)
+           ========================================================================= */}
+        {activeTab === "poojas" && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Header info card */}
+            <div className="bg-gradient-to-r from-amber-600 via-terracotta to-orange-700 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="relative z-10">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-black uppercase tracking-wider mb-2">
+                  <Flame className="w-3.5 h-3.5 text-amber-200" />
+                  <span>VEDIC ANUSHTHAN & APPOINTMENTS CMS</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-serif font-bold">Vedic Poojas & Pandit Ji Bookings</h2>
+                <p className="text-xs text-white/90 mt-1 max-w-xl leading-relaxed">
+                  Devotees book live Pooja appointments directly from the Home Screen. Manage bookings, schedule certified Pandits, and edit Vedic Pooja offerings synced with MongoDB Atlas.
+                </p>
+              </div>
+
+              <div className="relative z-10 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRefreshAppointments}
+                  className="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-bold inline-flex items-center gap-2 active:scale-95 transition-all"
+                  title="Reload from MongoDB Atlas"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Refresh DB</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-2xl border border-peach shadow-xs">
+                <span className="text-[10px] text-espresso/60 font-bold uppercase tracking-wider">Total Bookings</span>
+                <div className="text-2xl sm:text-3xl font-serif font-bold text-espresso mt-1">{appointmentsList.length}</div>
+                <p className="text-[11px] text-emerald-600 font-semibold mt-1">● Live in MongoDB</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-peach shadow-xs">
+                <span className="text-[10px] text-espresso/60 font-bold uppercase tracking-wider">Pending Action</span>
+                <div className="text-2xl sm:text-3xl font-serif font-bold text-amber-600 mt-1">
+                  {appointmentsList.filter((a) => a.status === "Pending").length}
+                </div>
+                <p className="text-[11px] text-espresso/60 font-semibold mt-1">Need Pandit confirmation</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-peach shadow-xs">
+                <span className="text-[10px] text-espresso/60 font-bold uppercase tracking-wider">Confirmed Poojas</span>
+                <div className="text-2xl sm:text-3xl font-serif font-bold text-emerald-600 mt-1">
+                  {appointmentsList.filter((a) => a.status === "Confirmed").length}
+                </div>
+                <p className="text-[11px] text-espresso/60 font-semibold mt-1">Scheduled with devotees</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-peach shadow-xs">
+                <span className="text-[10px] text-espresso/60 font-bold uppercase tracking-wider">Catalog Poojas</span>
+                <div className="text-2xl sm:text-3xl font-serif font-bold text-terracotta mt-1">{poojasList.length}</div>
+                <p className="text-[11px] text-espresso/60 font-semibold mt-1">Listed on Home Screen</p>
+              </div>
+            </div>
+
+            {/* Sub-Tab Navigation */}
+            <div className="flex items-center gap-2 border-b border-peach pb-2">
+              <button
+                type="button"
+                onClick={() => setPoojaSubTab("appointments")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                  poojaSubTab === "appointments"
+                    ? "bg-terracotta text-white shadow-xs"
+                    : "bg-white text-espresso/70 hover:bg-peach/40 border border-peach"
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Devotee Bookings ({appointmentsList.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPoojaSubTab("catalog")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                  poojaSubTab === "catalog"
+                    ? "bg-terracotta text-white shadow-xs"
+                    : "bg-white text-espresso/70 hover:bg-peach/40 border border-peach"
+                }`}
+              >
+                <Flame className="w-4 h-4" />
+                <span>Pooja Catalog ({poojasList.length})</span>
+              </button>
+            </div>
+
+            {/* ================= SUB-TAB 1: APPOINTMENTS ================= */}
+            {poojaSubTab === "appointments" && (
+              <div className="space-y-4">
+                {/* Status Filter */}
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-peach">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-bold text-espresso/70 mr-1">Filter:</span>
+                    {["All", "Pending", "Confirmed", "Completed", "Cancelled"].map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => setAppointmentStatusFilter(st)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                          appointmentStatusFilter === st
+                            ? "bg-espresso text-white"
+                            : "bg-peach/40 text-espresso/70 hover:bg-peach/70"
+                        }`}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+
+                  <span className="text-[11px] text-espresso/60 font-semibold">
+                    Showing{" "}
+                    {
+                      appointmentsList.filter(
+                        (a) => appointmentStatusFilter === "All" || a.status === appointmentStatusFilter
+                      ).length
+                    }{" "}
+                    bookings
+                  </span>
+                </div>
+
+                {/* Appointments Table */}
+                <div className="bg-white rounded-3xl p-6 border border-peach shadow-md">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-peach text-espresso/60 uppercase text-[10px] tracking-wider">
+                          <th className="py-3 px-3">Devotee Details</th>
+                          <th className="py-3 px-3">Pooja & Pandit Ji</th>
+                          <th className="py-3 px-3">Date & Time</th>
+                          <th className="py-3 px-3">Mode & Dakshina</th>
+                          <th className="py-3 px-3">Sankalp / Notes</th>
+                          <th className="py-3 px-3">Status</th>
+                          <th className="py-3 px-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-peach/50">
+                        {appointmentsList.filter(
+                          (a) => appointmentStatusFilter === "All" || a.status === appointmentStatusFilter
+                        ).length === 0 && (
+                          <tr>
+                            <td colSpan={7} className="py-10 text-center text-espresso/50 font-medium">
+                              {appointmentStatusFilter === "All"
+                                ? "Abhi koi Pooja booking nahi aayi hai. Home page ke bottom card se user jab pooja book karega, yahan turant dikhegi!"
+                                : `Koi bhi "${appointmentStatusFilter}" appointment nahi mila.`}
+                            </td>
+                          </tr>
+                        )}
+                        {appointmentsList
+                          .filter((a) => appointmentStatusFilter === "All" || a.status === appointmentStatusFilter)
+                          .map((app) => (
+                            <tr key={app.id || app.appointmentId} className="hover:bg-astro-bg/60 transition-colors">
+                              {/* Devotee */}
+                              <td className="py-3.5 px-3">
+                                <div>
+                                  <p className="font-bold text-espresso text-sm">{app.userName}</p>
+                                  <p className="text-[11px] text-terracotta font-semibold">Gotra: {app.gotra || "Kashyap"}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <a
+                                      href={`tel:${app.userPhone}`}
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-espresso/70 hover:text-terracotta"
+                                    >
+                                      <Phone className="w-3 h-3" />
+                                      <span>{app.userPhone}</span>
+                                    </a>
+                                    <a
+                                      href={`https://wa.me/91${app.userPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                                        `Pranam ${app.userName} ji! Aapki ${app.poojaName} ki booking hume prapt hui hai.`
+                                      )}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-2 py-0.5 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] font-bold"
+                                    >
+                                      Chat
+                                    </a>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Pooja & Pandit */}
+                              <td className="py-3.5 px-3">
+                                <p className="font-bold text-espresso">{app.poojaName}</p>
+                                <span className="text-[11px] text-espresso/60 flex items-center gap-1 mt-0.5">
+                                  <span>🧙‍♂️</span>
+                                  <span>{app.panditName || "Acharya Vidyadhar"}</span>
+                                </span>
+                              </td>
+
+                              {/* Date & Time */}
+                              <td className="py-3.5 px-3">
+                                <div className="flex items-center gap-1 font-semibold text-espresso">
+                                  <Calendar className="w-3 h-3 text-terracotta" />
+                                  <span>{app.preferredDate}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-[11px] text-espresso/60 mt-0.5">
+                                  <Clock className="w-3 h-3 text-espresso/40" />
+                                  <span>{app.preferredTime || "Morning 09:00 AM"}</span>
+                                </div>
+                              </td>
+
+                              {/* Mode & Dakshina */}
+                              <td className="py-3.5 px-3">
+                                <span className="px-2 py-0.5 rounded-full bg-peach/70 text-terracotta text-[10px] font-bold inline-block">
+                                  {app.mode || "Live Video"}
+                                </span>
+                                <p className="font-bold text-espresso text-xs mt-1">₹{app.price || 2100}</p>
+                              </td>
+
+                              {/* Notes */}
+                              <td className="py-3.5 px-3 max-w-xs">
+                                <p className="text-[11px] text-espresso/70 line-clamp-2 italic">
+                                  {app.notes || "Shanti & Samriddhi sankalp."}
+                                </p>
+                              </td>
+
+                              {/* Status */}
+                              <td className="py-3.5 px-3">
+                                <span
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                                    app.status === "Confirmed"
+                                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                      : app.status === "Completed"
+                                      ? "bg-blue-100 text-blue-800 border border-blue-300"
+                                      : app.status === "Cancelled"
+                                      ? "bg-rose-100 text-rose-800 border border-rose-300"
+                                      : "bg-amber-100 text-amber-800 border border-amber-300"
+                                  }`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      app.status === "Confirmed"
+                                        ? "bg-emerald-500 animate-pulse"
+                                        : app.status === "Completed"
+                                        ? "bg-blue-500"
+                                        : app.status === "Cancelled"
+                                        ? "bg-rose-500"
+                                        : "bg-amber-500"
+                                    }`}
+                                  />
+                                  <span>{app.status || "Pending"}</span>
+                                </span>
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-3.5 px-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {app.status !== "Confirmed" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateAppointmentStatus(app.id || app.appointmentId, "Confirmed")}
+                                      className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200 transition-colors"
+                                      title="Confirm Booking"
+                                    >
+                                      Confirm
+                                    </button>
+                                  )}
+
+                                  {app.status === "Confirmed" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateAppointmentStatus(app.id || app.appointmentId, "Completed")}
+                                      className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-[10px] font-bold border border-blue-200 transition-colors"
+                                      title="Mark Completed"
+                                    >
+                                      Complete
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteAppointment(app.id || app.appointmentId, app.userName)}
+                                    className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 inline-flex items-center justify-center transition-colors"
+                                    title="Delete Record"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ================= SUB-TAB 2: POOJA CATALOG CMS ================= */}
+            {poojaSubTab === "catalog" && (
+              <div className="space-y-6">
+                {/* Add Pooja Toggle & Header */}
+                <div className="flex items-center justify-between bg-white p-5 rounded-3xl border border-peach shadow-sm">
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-espresso">Live Vedic Pooja Catalog ({poojasList.length})</h3>
+                    <p className="text-xs text-espresso/60">These poojas are shown directly to devotees on the Home Screen.</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingPooja(!isAddingPooja)}
+                    className="px-4 py-2 rounded-xl bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold shadow-md inline-flex items-center gap-1.5 active:scale-95 transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{isAddingPooja ? "Close Form" : "Add New Pooja"}</span>
+                  </button>
+                </div>
+
+                {/* Add New Pooja Form */}
+                {isAddingPooja && (
+                  <div className="bg-white p-6 rounded-3xl border-2 border-amber-300 shadow-lg animate-in fade-in">
+                    <div className="flex items-center gap-2 mb-4 pb-3 border-b border-peach">
+                      <Flame className="w-5 h-5 text-terracotta" />
+                      <h4 className="font-serif font-bold text-base text-espresso">Publish New Vedic Pooja to App</h4>
+                    </div>
+
+                    <form onSubmit={handleCreatePooja} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">POOJA NAME *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Mahamrityunjaya Jaap & Havan"
+                          value={newPoojaName}
+                          onChange={(e) => setNewPoojaName(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">SUBTITLE / TAGLINE</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Aayu Vriddhi & Gambhir Rog Mukti"
+                          value={newPoojaSubtitle}
+                          onChange={(e) => setNewPoojaSubtitle(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">DEITY / BHAGWAN</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Bhagwan Shiv"
+                          value={newPoojaDeity}
+                          onChange={(e) => setNewPoojaDeity(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">CATEGORY</label>
+                        <select
+                          value={newPoojaCategory}
+                          onChange={(e) => setNewPoojaCategory(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        >
+                          <option value="Dosha">Dosha Nivaran</option>
+                          <option value="Health">Health & Arogya</option>
+                          <option value="Wealth">Wealth & Kuber</option>
+                          <option value="Vivah">Vivah & Relationship</option>
+                          <option value="Vastu">Vastu & Shanti</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">DURATION</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 2 Ghante"
+                          value={newPoojaDuration}
+                          onChange={(e) => setNewPoojaDuration(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">DAKSHINA / PRICE (₹)</label>
+                        <input
+                          type="number"
+                          min="100"
+                          value={newPoojaPrice}
+                          onChange={(e) => setNewPoojaPrice(Number(e.target.value))}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">ASSIGNED PANDIT JI</label>
+                        <input
+                          type="text"
+                          value={newPoojaPandit}
+                          onChange={(e) => setNewPoojaPandit(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">IMAGE URL</label>
+                        <input
+                          type="url"
+                          value={newPoojaImage}
+                          onChange={(e) => setNewPoojaImage(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">BENEFITS (comma separated)</label>
+                        <input
+                          type="text"
+                          value={newPoojaBenefits}
+                          onChange={(e) => setNewPoojaBenefits(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-3">
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">DESCRIPTION & VIDHI</label>
+                        <textarea
+                          rows={2}
+                          value={newPoojaDesc}
+                          onChange={(e) => setNewPoojaDesc(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-3 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingPooja(false)}
+                          className="px-4 py-2 rounded-xl border border-peach hover:bg-peach/30 text-xs font-bold text-espresso"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isSubmittingPooja}
+                          className="px-5 py-2 rounded-xl bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold shadow-md inline-flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                        >
+                          {isSubmittingPooja ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                          <span>Save & Publish Pooja</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* Catalog Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {poojasList.map((pooja) => (
+                    <div
+                      key={pooja.id || pooja.poojaId}
+                      className="bg-white rounded-3xl border border-peach shadow-md overflow-hidden flex flex-col justify-between"
+                    >
+                      <div className="relative h-44 overflow-hidden bg-espresso/10">
+                        <img
+                          src={pooja.image}
+                          alt={pooja.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                          <span className="px-2.5 py-1 rounded-full bg-amber-500/90 text-white text-[10px] font-bold backdrop-blur-xs">
+                            🕉️ {pooja.deity || "Bhagwan"}
+                          </span>
+                          <span className="px-2.5 py-1 rounded-full bg-black/60 text-white text-[10px] font-bold backdrop-blur-xs">
+                            {pooja.category || "Vedic"}
+                          </span>
+                        </div>
+                        <div className="absolute bottom-3 left-3 right-3 text-white">
+                          <h4 className="font-serif font-bold text-base leading-snug drop-shadow-md">{pooja.name}</h4>
+                          <p className="text-[11px] text-white/80 line-clamp-1">{pooja.subtitle}</p>
+                        </div>
+                      </div>
+
+                      <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-espresso/70">Pandit Ji:</span>
+                            <span className="font-semibold text-espresso">{pooja.panditName || "Acharya Vidyadhar"}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-espresso/70">Duration:</span>
+                            <span className="font-semibold text-terracotta">{pooja.duration || "2 Ghante"}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-espresso/70">Dakshina:</span>
+                            <span className="font-bold text-espresso text-sm">₹{pooja.price || 2100}</span>
+                          </div>
+
+                          {/* Benefits tags */}
+                          {pooja.benefits && pooja.benefits.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {pooja.benefits.slice(0, 3).map((b, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-0.5 rounded-full bg-peach/40 text-[10px] text-espresso/80 font-medium"
+                                >
+                                  ✓ {b}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Footer Actions */}
+                        <div className="flex items-center justify-between pt-3 border-t border-peach/50">
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePoojaStatus(pooja)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              pooja.isActive !== false
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-neutral-200 text-neutral-700"
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${pooja.isActive !== false ? "bg-emerald-500" : "bg-neutral-400"}`} />
+                            <span>{pooja.isActive !== false ? "Active" : "Hidden"}</span>
+                          </button>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setEditingPooja(pooja)}
+                              className="w-8 h-8 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 inline-flex items-center justify-center transition-colors"
+                              title="Edit Pooja"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePooja(pooja.id || pooja.poojaId, pooja.name)}
+                              className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 inline-flex items-center justify-center transition-colors"
+                              title="Delete Pooja"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Edit Pooja Modal */}
+                {editingPooja && (
+                  <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white rounded-3xl max-w-xl w-full p-6 border border-peach shadow-2xl space-y-4 my-8">
+                      <div className="flex items-center justify-between pb-3 border-b border-peach">
+                        <div className="flex items-center gap-2">
+                          <Flame className="w-5 h-5 text-terracotta" />
+                          <div>
+                            <h4 className="font-serif font-bold text-base text-espresso">Edit Vedic Pooja</h4>
+                            <p className="text-[11px] text-espresso/60">Updates will sync directly to MongoDB Atlas</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditingPooja(null)}
+                          className="w-8 h-8 rounded-full hover:bg-peach/50 flex items-center justify-center text-espresso/60"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <form onSubmit={handleUpdatePooja} className="space-y-3.5">
+                        <div>
+                          <label className="block text-[11px] font-bold text-espresso/70 mb-1">POOJA NAME</label>
+                          <input
+                            type="text"
+                            required
+                            value={editingPooja.name}
+                            onChange={(e) => setEditingPooja({ ...editingPooja, name: e.target.value })}
+                            className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-espresso/70 mb-1">SUBTITLE</label>
+                            <input
+                              type="text"
+                              value={editingPooja.subtitle}
+                              onChange={(e) => setEditingPooja({ ...editingPooja, subtitle: e.target.value })}
+                              className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-espresso/70 mb-1">DEITY / BHAGWAN</label>
+                            <input
+                              type="text"
+                              value={editingPooja.deity}
+                              onChange={(e) => setEditingPooja({ ...editingPooja, deity: e.target.value })}
+                              className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-espresso/70 mb-1">CATEGORY</label>
+                            <select
+                              value={editingPooja.category}
+                              onChange={(e) => setEditingPooja({ ...editingPooja, category: e.target.value })}
+                              className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                            >
+                              <option value="Dosha">Dosha</option>
+                              <option value="Health">Health</option>
+                              <option value="Wealth">Wealth</option>
+                              <option value="Vivah">Vivah</option>
+                              <option value="Vastu">Vastu</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-espresso/70 mb-1">DURATION</label>
+                            <input
+                              type="text"
+                              value={editingPooja.duration}
+                              onChange={(e) => setEditingPooja({ ...editingPooja, duration: e.target.value })}
+                              className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-espresso/70 mb-1">DAKSHINA (₹)</label>
+                            <input
+                              type="number"
+                              value={editingPooja.price}
+                              onChange={(e) => setEditingPooja({ ...editingPooja, price: Number(e.target.value) })}
+                              className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-espresso/70 mb-1">ASSIGNED PANDIT JI</label>
+                          <input
+                            type="text"
+                            value={editingPooja.panditName}
+                            onChange={(e) => setEditingPooja({ ...editingPooja, panditName: e.target.value })}
+                            className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-espresso/70 mb-1">IMAGE URL</label>
+                          <input
+                            type="url"
+                            value={editingPooja.image}
+                            onChange={(e) => setEditingPooja({ ...editingPooja, image: e.target.value })}
+                            className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-espresso/70 mb-1">DESCRIPTION</label>
+                          <textarea
+                            rows={2}
+                            value={editingPooja.description}
+                            onChange={(e) => setEditingPooja({ ...editingPooja, description: e.target.value })}
+                            className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-3 border-t border-peach">
+                          <button
+                            type="button"
+                            onClick={() => setEditingPooja(null)}
+                            className="px-4 py-2 rounded-xl border border-peach hover:bg-peach/30 text-xs font-bold text-espresso"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isSubmittingPooja}
+                            className="px-5 py-2 rounded-xl bg-terracotta hover:bg-terracotta-hover text-white text-xs font-bold shadow-md inline-flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                          >
+                            {isSubmittingPooja ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                            <span>Update in MongoDB</span>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>

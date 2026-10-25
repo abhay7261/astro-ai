@@ -59,6 +59,12 @@ export const astrologersApi = {
       body: JSON.stringify(astroData),
     });
   },
+  update: async (id: string, astroData: any) => {
+    return await apiRequest<{ success: boolean; message: string; astrologer: any }>(`/astrologers/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(astroData),
+    });
+  },
   delete: async (id: string) => {
     return await apiRequest<{ success: boolean; message: string }>(`/astrologers/${id}`, {
       method: "DELETE",
@@ -288,6 +294,90 @@ export const bannersApi = {
   },
   delete: async (id: string) => {
     return await apiRequest<{ success: boolean; message: string }>(`/banners/${id}`, {
+      method: "DELETE",
+    });
+  },
+};
+
+// 8. Vedic Poojas & Pandit Ji Appointments API
+export interface PoojaItem {
+  id: string;
+  poojaId: string;
+  name: string;
+  subtitle: string;
+  deity: string;
+  category: string;
+  duration: string;
+  price: number;
+  panditName: string;
+  image: string;
+  benefits: string[];
+  description: string;
+  isActive: boolean;
+}
+
+export interface PoojaAppointmentItem {
+  id: string;
+  appointmentId: string;
+  poojaId: string;
+  poojaName: string;
+  panditName: string;
+  userName: string;
+  userPhone: string;
+  userEmail?: string;
+  gotra: string;
+  preferredDate: string;
+  preferredTime: string;
+  mode: string;
+  price: number;
+  status: "Pending" | "Confirmed" | "Completed" | "Cancelled";
+  notes?: string;
+  createdAt: string;
+}
+
+export const poojasApi = {
+  getAll: async () => {
+    const data = await apiRequest<{ success: boolean; poojas: PoojaItem[] }>("/poojas");
+    return data?.poojas || null;
+  },
+  create: async (poojaData: Partial<PoojaItem>) => {
+    return await apiRequest<{ success: boolean; message: string; pooja: PoojaItem }>("/poojas", {
+      method: "POST",
+      body: JSON.stringify(poojaData),
+    });
+  },
+  update: async (id: string, poojaData: Partial<PoojaItem>) => {
+    return await apiRequest<{ success: boolean; message: string; pooja: PoojaItem }>(`/poojas/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(poojaData),
+    });
+  },
+  delete: async (id: string) => {
+    return await apiRequest<{ success: boolean; message: string }>(`/poojas/${id}`, {
+      method: "DELETE",
+    });
+  },
+  book: async (appointmentData: any) => {
+    return await apiRequest<{ success: boolean; message: string; appointment: PoojaAppointmentItem }>("/poojas/book", {
+      method: "POST",
+      body: JSON.stringify(appointmentData),
+    });
+  },
+  getAppointments: async () => {
+    const data = await apiRequest<{ success: boolean; appointments: PoojaAppointmentItem[] }>("/poojas/appointments");
+    return data?.appointments || null;
+  },
+  updateAppointmentStatus: async (id: string, status: string) => {
+    return await apiRequest<{ success: boolean; message: string; appointment: PoojaAppointmentItem }>(
+      `/poojas/appointments/${id}/status`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }
+    );
+  },
+  deleteAppointment: async (id: string) => {
+    return await apiRequest<{ success: boolean; message: string }>(`/poojas/appointments/${id}`, {
       method: "DELETE",
     });
   },

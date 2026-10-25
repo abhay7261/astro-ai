@@ -15,6 +15,7 @@ import AstroChatModal from "../components/AstroChatModal";
 import CosmicOrbAnimation from "../components/mobile/CosmicOrbAnimation";
 import VedicAstrolabeChakra from "../components/mobile/VedicAstrolabeChakra";
 import HeroBannerSlider from "../components/mobile/HeroBannerSlider";
+import VedicPoojaSection from "../components/mobile/VedicPoojaSection";
 import { astrologersApi } from "../services/apiClient";
 
 export default function HomePage() {
@@ -368,6 +369,9 @@ export default function HomePage() {
             <ArrowRight className="w-4 h-4 stroke-[3]" />
           </Link>
         </section>
+
+        {/* 6. Vedic Pooja & Pandit Ji Anushthan Appointment Card */}
+        <VedicPoojaSection />
 
       </div>
 
