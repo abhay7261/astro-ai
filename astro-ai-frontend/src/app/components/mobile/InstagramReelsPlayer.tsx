@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { 
   Heart, MessageCircle, Share2, ArrowLeft, Volume2, VolumeX, 
-  Play, Pause, Sparkles, Send, X, ChevronUp, ChevronDown, 
+  Play, Pause, Sparkles, Send, X, 
   Flame, Music2, CheckCircle2, Bookmark, Film
 } from "lucide-react";
 import AstroChatModal from "../AstroChatModal";
@@ -734,30 +734,7 @@ export default function InstagramReelsPlayer() {
         })}
       </div>
 
-      {/* Desktop Up/Down Navigation Helpers */}
-      <div className="hidden sm:flex absolute right-6 top-1/2 -translate-y-1/2 flex-col gap-3 z-40">
-        <button
-          onClick={() => scrollToReel(currentIndex - 1)}
-          disabled={currentIndex === 0}
-          className={`w-12 h-12 rounded-full border border-white/20 flex items-center justify-center transition-all ${
-            currentIndex === 0 ? "opacity-30 cursor-not-allowed bg-black/40" : "bg-black/70 hover:bg-terracotta text-white active:scale-95 shadow-xl cursor-pointer"
-          }`}
-          title="Previous Reel (Up Arrow)"
-        >
-          <ChevronUp className="w-6 h-6" />
-        </button>
-        
-        <button
-          onClick={() => scrollToReel(currentIndex + 1)}
-          disabled={currentIndex >= allReels.length - 1}
-          className={`w-12 h-12 rounded-full border border-white/20 flex items-center justify-center transition-all ${
-            currentIndex >= allReels.length - 1 ? "opacity-30 cursor-not-allowed bg-black/40" : "bg-black/70 hover:bg-terracotta text-white active:scale-95 shadow-xl cursor-pointer"
-          }`}
-          title="Next Reel (Down Arrow)"
-        >
-          <ChevronDown className="w-6 h-6" />
-        </button>
-      </div>
+
 
       {/* Comments Drawer */}
       {showCommentsDrawer && activeReel && (
