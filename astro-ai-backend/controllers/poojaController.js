@@ -18,7 +18,22 @@ export const getAllPoojas = async (req, res) => {
 // 2. POST Add New Pooja (Admin)
 export const createPooja = async (req, res) => {
   try {
-    const { name, subtitle, deity, category, duration, price, panditName, image, benefits, description } = req.body;
+    const {
+      name,
+      subtitle,
+      deity,
+      category,
+      duration,
+      price,
+      originalPrice,
+      purohitsCount,
+      badge,
+      panditName,
+      image,
+      benefits,
+      description,
+      isActive,
+    } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: "Pooja ka naam likhna zaroori hai!" });
@@ -29,12 +44,16 @@ export const createPooja = async (req, res) => {
       subtitle: subtitle ? subtitle.trim() : "Vedic Anushthan",
       deity: deity || "Bhagwan Shiv",
       category: category || "Dosha",
-      duration: duration || "2 Ghante",
-      price: Number(price) || 2100,
+      duration: duration || "60-90 mins",
+      price: Number(price) || 1499,
+      originalPrice: Number(originalPrice) || 1999,
+      purohitsCount: purohitsCount || "1 Purohit",
+      badge: badge !== undefined ? badge : "POPULAR",
       panditName: panditName || "Acharya Vidyadhar Shastri",
       image: image || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80",
       benefits: Array.isArray(benefits) ? benefits : [benefits || "Graha Shanti"],
       description: description || "Vedic vidhi-vidhan se pooja anushthan.",
+      isActive: isActive !== undefined ? isActive : true,
     });
 
     res.status(201).json({

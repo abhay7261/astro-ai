@@ -239,14 +239,17 @@ export default function AdminDashboard() {
   // New Pooja Form State
   const [newPoojaName, setNewPoojaName] = useState("");
   const [newPoojaSubtitle, setNewPoojaSubtitle] = useState("");
-  const [newPoojaDeity, setNewPoojaDeity] = useState("Bhagwan Shiv");
-  const [newPoojaCategory, setNewPoojaCategory] = useState("Dosha");
-  const [newPoojaDuration, setNewPoojaDuration] = useState("1.5 - 2 Ghante");
-  const [newPoojaPrice, setNewPoojaPrice] = useState(2100);
+  const [newPoojaDeity, setNewPoojaDeity] = useState("Bhagwan Ganesh");
+  const [newPoojaCategory, setNewPoojaCategory] = useState("Ganesh");
+  const [newPoojaDuration, setNewPoojaDuration] = useState("60–90 mins");
+  const [newPoojaPrice, setNewPoojaPrice] = useState(1499);
+  const [newPoojaOriginalPrice, setNewPoojaOriginalPrice] = useState(1999);
+  const [newPoojaPurohits, setNewPoojaPurohits] = useState("1 Purohit");
+  const [newPoojaBadge, setNewPoojaBadge] = useState("POPULAR");
   const [newPoojaPandit, setNewPoojaPandit] = useState("Acharya Vidyadhar Shastri");
-  const [newPoojaImage, setNewPoojaImage] = useState("https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80");
-  const [newPoojaBenefits, setNewPoojaBenefits] = useState("Graha Shanti, Arogya, Parivar Kalyan");
-  const [newPoojaDesc, setNewPoojaDesc] = useState("Vedic shlok evam sampoorna anushthan vidhi ke sath sankalp.");
+  const [newPoojaImage, setNewPoojaImage] = useState("https://images.unsplash.com/photo-1567591414240-e9a11dff0ef8?auto=format&fit=crop&w=600&q=80");
+  const [newPoojaBenefits, setNewPoojaBenefits] = useState("Vighna Vinashak, Riddhi-Siddhi, Shubh Aarambh");
+  const [newPoojaDesc, setNewPoojaDesc] = useState("Removes obstacles and brings success, prosperity and positive energy.");
   const [isSubmittingPooja, setIsSubmittingPooja] = useState(false);
 
   // Common UI State
@@ -702,14 +705,17 @@ export default function AdminDashboard() {
     const payload: Partial<PoojaItem> = {
       name: newPoojaName.trim(),
       subtitle: newPoojaSubtitle.trim() || "Vedic Anushthan",
-      deity: newPoojaDeity.trim() || "Bhagwan Shiv",
+      deity: newPoojaDeity.trim() || "Bhagwan Ganesh",
       category: newPoojaCategory,
-      duration: newPoojaDuration.trim(),
-      price: Number(newPoojaPrice) || 2100,
+      duration: newPoojaDuration.trim() || "60–90 mins",
+      price: Number(newPoojaPrice) || 1499,
+      originalPrice: Number(newPoojaOriginalPrice) || 1999,
+      purohitsCount: newPoojaPurohits.trim() || "1 Purohit",
+      badge: newPoojaBadge.trim() || "POPULAR",
       panditName: newPoojaPandit.trim() || "Acharya Vidyadhar Shastri",
-      image: newPoojaImage.trim(),
+      image: newPoojaImage.trim() || "https://images.unsplash.com/photo-1567591414240-e9a11dff0ef8?auto=format&fit=crop&w=600&q=80",
       benefits: newPoojaBenefits.split(",").map((s) => s.trim()).filter(Boolean),
-      description: newPoojaDesc.trim() || "Vedic vidhi-vidhan se sampoorna pooja anushthan.",
+      description: newPoojaDesc.trim() || "Removes obstacles and brings success, prosperity and positive energy.",
       isActive: true,
     };
 
@@ -3414,6 +3420,10 @@ export default function AdminDashboard() {
                           onChange={(e) => setNewPoojaCategory(e.target.value)}
                           className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
                         >
+                          <option value="Ganesh">Ganesh</option>
+                          <option value="Lakshmi">Lakshmi</option>
+                          <option value="Shiva">Shiva</option>
+                          <option value="Navagraha">Navagraha</option>
                           <option value="Dosha">Dosha Nivaran</option>
                           <option value="Health">Health & Arogya</option>
                           <option value="Wealth">Wealth & Kuber</option>
@@ -3423,10 +3433,21 @@ export default function AdminDashboard() {
                       </div>
 
                       <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">BADGE (TAG)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. POPULAR, FEATURED"
+                          value={newPoojaBadge}
+                          onChange={(e) => setNewPoojaBadge(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
                         <label className="block text-[11px] font-bold text-espresso/70 mb-1">DURATION</label>
                         <input
                           type="text"
-                          placeholder="e.g. 2 Ghante"
+                          placeholder="e.g. 60–90 mins"
                           value={newPoojaDuration}
                           onChange={(e) => setNewPoojaDuration(e.target.value)}
                           className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
@@ -3434,12 +3455,34 @@ export default function AdminDashboard() {
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">DAKSHINA / PRICE (₹)</label>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">PUROHITS COUNT</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 1 Purohit, 2 Purohits"
+                          value={newPoojaPurohits}
+                          onChange={(e) => setNewPoojaPurohits(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">OFFER PRICE (₹)</label>
                         <input
                           type="number"
                           min="100"
                           value={newPoojaPrice}
                           onChange={(e) => setNewPoojaPrice(Number(e.target.value))}
+                          className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-espresso/70 mb-1">ORIGINAL PRICE (₹ CROSSED)</label>
+                        <input
+                          type="number"
+                          min="100"
+                          value={newPoojaOriginalPrice}
+                          onChange={(e) => setNewPoojaOriginalPrice(Number(e.target.value))}
                           className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-terracotta/30"
                         />
                       </div>
@@ -3665,12 +3708,26 @@ export default function AdminDashboard() {
                               onChange={(e) => setEditingPooja({ ...editingPooja, category: e.target.value })}
                               className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
                             >
+                              <option value="Ganesh">Ganesh</option>
+                              <option value="Lakshmi">Lakshmi</option>
+                              <option value="Shiva">Shiva</option>
+                              <option value="Navagraha">Navagraha</option>
                               <option value="Dosha">Dosha</option>
                               <option value="Health">Health</option>
                               <option value="Wealth">Wealth</option>
                               <option value="Vivah">Vivah</option>
                               <option value="Vastu">Vastu</option>
                             </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-espresso/70 mb-1">BADGE (TAG)</label>
+                            <input
+                              type="text"
+                              value={editingPooja.badge || "POPULAR"}
+                              onChange={(e) => setEditingPooja({ ...editingPooja, badge: e.target.value })}
+                              className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                            />
                           </div>
 
                           <div>
@@ -3682,13 +3739,35 @@ export default function AdminDashboard() {
                               className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
                             />
                           </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-espresso/70 mb-1">PUROHITS COUNT</label>
+                            <input
+                              type="text"
+                              value={editingPooja.purohitsCount || "1 Purohit"}
+                              onChange={(e) => setEditingPooja({ ...editingPooja, purohitsCount: e.target.value })}
+                              className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                            />
+                          </div>
 
                           <div>
-                            <label className="block text-[11px] font-bold text-espresso/70 mb-1">DAKSHINA (₹)</label>
+                            <label className="block text-[11px] font-bold text-espresso/70 mb-1">OFFER PRICE (₹)</label>
                             <input
                               type="number"
                               value={editingPooja.price}
                               onChange={(e) => setEditingPooja({ ...editingPooja, price: Number(e.target.value) })}
+                              className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-espresso/70 mb-1">ORIGINAL PRICE (₹)</label>
+                            <input
+                              type="number"
+                              value={editingPooja.originalPrice || 1999}
+                              onChange={(e) => setEditingPooja({ ...editingPooja, originalPrice: Number(e.target.value) })}
                               className="w-full px-3.5 py-2 rounded-xl border border-peach bg-astro-bg text-xs font-semibold focus:outline-none"
                             />
                           </div>

@@ -10,8 +10,11 @@ const poojaSchema = new mongoose.Schema(
     subtitle: { type: String, default: "Vedic Anushthan & Pooja" },
     deity: { type: String, default: "Bhagwan Shiv" },
     category: { type: String, default: "Dosha" },
-    duration: { type: String, default: "2 Ghante" },
-    price: { type: Number, default: 2100 },
+    duration: { type: String, default: "60-90 mins" },
+    price: { type: Number, default: 1499 },
+    originalPrice: { type: Number, default: 1999 },
+    purohitsCount: { type: String, default: "1 Purohit" },
+    badge: { type: String, default: "POPULAR" },
     panditName: { type: String, default: "Acharya Vidyadhar Shastri" },
     image: { type: String, default: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80" },
     benefits: { type: [String], default: ["Graha Shanti", "Sankalp Darshan"] },
@@ -153,29 +156,16 @@ export const PoojaModel = {
   find: async (query = {}) => {
     try {
       if (mongoose.connection.readyState === 1) {
-        let atlasPoojas = await MongoPooja.find(query).lean();
-        if (atlasPoojas && atlasPoojas.length > 0) {
-          return atlasPoojas.map((p) => ({
-            ...p,
-            id: p.poojaId || p._id.toString(),
-          }));
-        } else if (DEFAULT_POOJAS.length > 0) {
-          try {
-            await MongoPooja.insertMany(DEFAULT_POOJAS);
-            atlasPoojas = await MongoPooja.find(query).lean();
-            if (atlasPoojas && atlasPoojas.length > 0) {
-              return atlasPoojas.map((p) => ({
-                ...p,
-                id: p.poojaId || p._id.toString(),
-              }));
-            }
-          } catch (seedErr) {}
-        }
+        const atlasPoojas = await MongoPooja.find(query).lean();
+        return (atlasPoojas || []).map((p) => ({
+          ...p,
+          id: p.poojaId || p._id.toString(),
+        }));
       }
     } catch (e) {
       console.warn("⚠️ [Pooja Model] Atlas read fallback:", e.message);
     }
-    return poojasStore;
+    return poojasStore || [];
   },
 
   create: async (data) => {
@@ -184,7 +174,13 @@ export const PoojaModel = {
       id: poojaId,
       poojaId,
       isActive: data.isActive !== undefined ? data.isActive : true,
-      price: Number(data.price) || 2100,
+      price: Number(data.price) || 1499,
+      originalPrice: Number(data.originalPrice) || (Number(data.price) ? Math.round(Number(data.price) * 1.3) : 1999),
+      purohitsCount: data.purohitsCount || "1 Purohit",
+      badge: data.badge !== undefined ? data.badge : "POPULAR",
+      duration: data.duration || "60-90 mins",
+      category: data.category || "All",
+      deity: data.deity || "Bhagwan",
       benefits: Array.isArray(data.benefits) ? data.benefits : ["Graha Shanti", "Sankalp Darshan"],
       ...data,
     };

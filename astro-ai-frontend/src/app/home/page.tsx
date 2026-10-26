@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { 
   Sparkles, Bot, MessageCircle, Crown, ArrowRight, 
-  Sun, Clapperboard, ChevronRight, Star, Flame, CheckCircle2,
+  Sun, Moon, ShoppingBag, BookOpen, Clapperboard, ChevronRight, Star, Flame, CheckCircle2,
   Pencil, Check, X
 } from "lucide-react";
 import MobileAppLayout from "../components/mobile/MobileAppLayout";
@@ -157,6 +157,102 @@ export default function HomePage() {
 
         {/* 2. Interactive High-Impact Cosmic Orb Animation */}
         <CosmicOrbAnimation />
+
+        {/* 2.5 Quick Vedic Services (Personalised Pooja, Astro Store, Solutions, Astro History) */}
+        <section className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {/* Pooja: Personalised Pooja */}
+            <Link
+              href="/pooja"
+              onClick={(e) => handleActionClick(e, "/pooja", "Vedic Pooja & Anushthan")}
+              className="bg-gradient-to-br from-[#FFF7ED] via-white to-[#FFEDD5] p-3.5 sm:p-4 rounded-2xl border-2 border-orange-300/80 hover:border-orange-500 shadow-xs hover:shadow-md transition-all flex items-center gap-3 group active:scale-95"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#FF6500] to-amber-500 text-white flex items-center justify-center text-xl shadow-md shadow-orange-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+                🕉️
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-[#FF6500] tracking-wider block">Sacred Vidhi</span>
+                <h4 className="font-bold text-xs sm:text-sm text-espresso group-hover:text-[#FF6500] transition-colors leading-tight">Pooja</h4>
+                <p className="text-[10px] text-espresso/65 truncate mt-0.5">Personalised Pooja</p>
+              </div>
+            </Link>
+
+            {/* Astro Store: Rudraksha & Gemstones */}
+            <Link
+              href="/services"
+              onClick={(e) => handleActionClick(e, "/services", "Astro Store")}
+              className="bg-gradient-to-br from-[#FFFDF5] via-white to-[#FEF3C7] p-3.5 sm:p-4 rounded-2xl border-2 border-amber-300/80 hover:border-amber-500 shadow-xs hover:shadow-md transition-all flex items-center gap-3 group active:scale-95"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-600 text-white flex items-center justify-center shadow-md shadow-amber-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+                <ShoppingBag className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-amber-700 tracking-wider block">Vedic Store</span>
+                <h4 className="font-bold text-xs sm:text-sm text-espresso group-hover:text-amber-700 transition-colors leading-tight">Astro Store</h4>
+                <p className="text-[10px] text-espresso/65 truncate mt-0.5">Rudraksha & Gems</p>
+              </div>
+            </Link>
+
+            {/* Solutions: Samadhan & Guidance */}
+            <Link
+              href="/ai-chat"
+              onClick={(e) => handleActionClick(e, "/ai-chat", "Solutions & Samadhan")}
+              className="bg-gradient-to-br from-[#FAF5FF] via-white to-[#F3E8FF] p-3.5 sm:p-4 rounded-2xl border-2 border-purple-300/80 hover:border-purple-500 shadow-xs hover:shadow-md transition-all flex items-center gap-3 group active:scale-95"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-purple-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+                <Sparkles className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-purple-700 tracking-wider block">Upay & Guidance</span>
+                <h4 className="font-bold text-xs sm:text-sm text-espresso group-hover:text-purple-700 transition-colors leading-tight">Solutions</h4>
+                <p className="text-[10px] text-espresso/65 truncate mt-0.5">Samadhan & Upay</p>
+              </div>
+            </Link>
+
+            {/* Astro History: Astrology Readings */}
+            <Link
+              href="/kundli"
+              onClick={(e) => handleActionClick(e, "/kundli", "Astro History & Kundli")}
+              className="bg-gradient-to-br from-[#F0FDF4] via-white to-[#DCFCE7] p-3.5 sm:p-4 rounded-2xl border-2 border-emerald-300/80 hover:border-emerald-500 shadow-xs hover:shadow-md transition-all flex items-center gap-3 group active:scale-95"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-700 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+                <BookOpen className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black uppercase text-emerald-700 tracking-wider block">Janam Kundli</span>
+                <h4 className="font-bold text-xs sm:text-sm text-espresso group-hover:text-emerald-700 transition-colors leading-tight">Astro History</h4>
+                <p className="text-[10px] text-espresso/65 truncate mt-0.5">Astrology Readings</p>
+              </div>
+            </Link>
+          </div>
+
+          {/* Sun (Surya) & Moon (Chandra) Celestial Energy Cards */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Surya Transit Insight */}
+            <div className="bg-gradient-to-br from-amber-500/10 via-white to-orange-100/40 p-3 rounded-2xl border border-amber-300/80 flex items-center gap-2.5 shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-sm flex-shrink-0">
+                <Sun className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black text-amber-700 uppercase block">Surya Gochar</span>
+                <h5 className="font-bold text-xs text-espresso leading-tight truncate">Career & Tejas</h5>
+                <p className="text-[9px] text-espresso/60 truncate">High Cosmic Vitality</p>
+              </div>
+            </div>
+
+            {/* Chandra Nakshatra Insight */}
+            <div className="bg-gradient-to-br from-indigo-500/10 via-white to-blue-100/40 p-3 rounded-2xl border border-indigo-300/80 flex items-center gap-2.5 shadow-2xs">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-sm flex-shrink-0">
+                <Moon className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] font-black text-indigo-700 uppercase block">Chandra Dasha</span>
+                <h5 className="font-bold text-xs text-espresso leading-tight truncate">Peace & Mind</h5>
+                <p className="text-[9px] text-espresso/60 truncate">Shubh Nakshatra Yog</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* 3. Explore Astrology Services Grid (Launch Scope) */}
         <section>

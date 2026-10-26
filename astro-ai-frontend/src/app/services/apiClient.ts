@@ -309,6 +309,9 @@ export interface PoojaItem {
   category: string;
   duration: string;
   price: number;
+  originalPrice?: number;
+  purohitsCount?: string;
+  badge?: string;
   panditName: string;
   image: string;
   benefits: string[];
