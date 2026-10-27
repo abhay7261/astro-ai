@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
-  User, Crown, LogOut, FileText, Heart, MessageCircle, 
-  Plus, Calendar, ShieldCheck, ChevronRight, Settings, Bell 
+  User, Crown, LogOut, FileText, MessageCircle, 
+  Plus, Calendar, ChevronRight 
 } from "lucide-react";
 import MobileAppLayout from "../components/mobile/MobileAppLayout";
 import { AuthUser } from "../components/mobile/AuthScreen";
@@ -98,54 +98,37 @@ export default function ProfilePage() {
           </Link>
         </div>
 
-        {/* Saved Family Kundlis Section */}
+        {/* Saved Janam Kundli Section (Real User Profile Only - Zero Fake Data) */}
         <div className="bg-white rounded-3xl p-5 sm:p-6 border border-peach shadow-sm">
           <div className="flex items-center justify-between pb-3 border-b border-peach/60 mb-4">
             <h3 className="font-serif font-bold text-sm sm:text-base text-espresso flex items-center gap-2">
               <FileText className="w-4 h-4 text-terracotta" />
-              Saved Family Kundlis (2)
+              <span>My Janam Kundli Profile</span>
             </h3>
             <Link
               href="/kundli"
               className="text-xs font-bold text-terracotta hover:underline flex items-center gap-1"
             >
               <Plus className="w-3.5 h-3.5" />
-              Add Kundli
+              <span>New Kundli</span>
             </Link>
           </div>
 
           <div className="space-y-3">
-            {/* Kundli 1 */}
+            {/* User's Verified Kundli */}
             <div className="bg-astro-bg p-3.5 rounded-2xl border border-peach/70 flex items-center justify-between gap-3">
               <div>
-                <h4 className="font-bold text-xs text-espresso">{user?.name || "Self"} (Self)</h4>
+                <h4 className="font-bold text-xs text-espresso">{user?.name || "Abhay"} (Self)</h4>
                 <p className="text-[10px] text-espresso/60 flex items-center gap-1 mt-0.5">
                   <Calendar className="w-3 h-3 text-terracotta" />
-                  15 Aug 1995 • 10:32 AM • Mumbai
+                  <span>Vedic Kundli & Planetary Dasha</span>
                 </p>
               </div>
               <Link
                 href="/kundli"
                 className="text-xs bg-peach text-espresso font-bold px-3 py-1.5 rounded-xl hover:bg-peach/80 transition-colors"
               >
-                View
-              </Link>
-            </div>
-
-            {/* Kundli 2 */}
-            <div className="bg-astro-bg p-3.5 rounded-2xl border border-peach/70 flex items-center justify-between gap-3">
-              <div>
-                <h4 className="font-bold text-xs text-espresso">Pooja (Spouse)</h4>
-                <p className="text-[10px] text-espresso/60 flex items-center gap-1 mt-0.5">
-                  <Calendar className="w-3 h-3 text-terracotta" />
-                  22 Dec 1997 • 04:15 PM • Delhi
-                </p>
-              </div>
-              <Link
-                href="/kundli-milan"
-                className="text-xs bg-peach text-espresso font-bold px-3 py-1.5 rounded-xl hover:bg-peach/80 transition-colors"
-              >
-                Match
+                View Chart
               </Link>
             </div>
           </div>
@@ -154,23 +137,23 @@ export default function ProfilePage() {
         {/* Quick Links Menu */}
         <div className="bg-white rounded-3xl p-2 border border-peach shadow-sm divide-y divide-peach/50 text-xs">
           <Link
+            href="/pooja"
+            className="flex items-center justify-between p-3.5 hover:bg-astro-bg/50 rounded-2xl transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-base">🕉️</span>
+              <span className="font-medium text-espresso">My Vedic Pooja Bookings</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-espresso/40" />
+          </Link>
+
+          <Link
             href="/chat"
             className="flex items-center justify-between p-3.5 hover:bg-astro-bg/50 rounded-2xl transition-colors"
           >
             <div className="flex items-center gap-2.5">
               <MessageCircle className="w-4 h-4 text-emerald-600" />
               <span className="font-medium text-espresso">Astrologer Consultation History</span>
-            </div>
-            <ChevronRight className="w-4 h-4 text-espresso/40" />
-          </Link>
-
-          <Link
-            href="/kundli-milan"
-            className="flex items-center justify-between p-3.5 hover:bg-astro-bg/50 rounded-2xl transition-colors"
-          >
-            <div className="flex items-center gap-2.5">
-              <Heart className="w-4 h-4 text-rose-500" />
-              <span className="font-medium text-espresso">Kundli Milan Reports</span>
             </div>
             <ChevronRight className="w-4 h-4 text-espresso/40" />
           </Link>
